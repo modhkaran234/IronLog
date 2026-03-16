@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IronLog">
+<meta name="theme-color" content="#0a0a0a">
+<title>IronLog</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body, #root { height: 100%; background: #0a0a0a; overflow-x: hidden; }
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+  ::-webkit-scrollbar { display: none; }
+  textarea { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+
+// ════════════════════════════════════════════════════════════════
+//  EXERCISE DATABASE — Organized by muscle group with variants
+// ════════════════════════════════════════════════════════════════
+const EXERCISE_DB = [
+  // ── CHEST ──
+  { name:"Bench Press (Barbell)", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Bench Press (Dumbbell)", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Bench Press (Smith Machine)", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Incline Bench Press (Barbell)", muscles:["Upper Chest","Triceps","Shoulders"] },
+  { name:"Incline Bench Press (Dumbbell)", muscles:["Upper Chest","Triceps","Shoulders"] },
+  { name:"Incline Bench Press (Smith Machine)", muscles:["Upper Chest","Triceps","Shoulders"] },
+  { name:"Decline Bench Press (Barbell)", muscles:["Lower Chest","Triceps"] },
+  { name:"Decline Bench Press (Dumbbell)", muscles:["Lower Chest","Triceps"] },
+  { name:"Chest Press (Machine)", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Incline Chest Press (Machine)", muscles:["Upper Chest","Triceps"] },
+  { name:"Chest Fly (Dumbbell)", muscles:["Chest"] },
+  { name:"Incline Chest Fly (Dumbbell)", muscles:["Upper Chest"] },
+  { name:"Cable Fly (High to Low)", muscles:["Lower Chest"] },
+  { name:"Cable Fly (Low to High)", muscles:["Upper Chest"] },
+  { name:"Cable Fly (Mid)", muscles:["Chest"] },
+  { name:"Pec Deck / Machine Fly", muscles:["Chest"] },
+  { name:"Push-up", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Push-up (Incline)", muscles:["Lower Chest","Triceps"] },
+  { name:"Push-up (Decline)", muscles:["Upper Chest","Triceps"] },
+  { name:"Dip (Chest Focused)", muscles:["Chest","Triceps","Shoulders"] },
+  { name:"Landmine Press", muscles:["Upper Chest","Shoulders"] },
+  { name:"Svend Press", muscles:["Chest"] },
+  { name:"Floor Press (Barbell)", muscles:["Chest","Triceps"] },
+  { name:"Floor Press (Dumbbell)", muscles:["Chest","Triceps"] },
+
+  // ── BACK ──
+  { name:"Deadlift (Conventional)", muscles:["Back","Hamstrings","Glutes"] },
+  { name:"Deadlift (Sumo)", muscles:["Back","Glutes","Quads"] },
+  { name:"Romanian Deadlift (Barbell)", muscles:["Hamstrings","Back","Glutes"] },
+  { name:"Romanian Deadlift (Dumbbell)", muscles:["Hamstrings","Back","Glutes"] },
+  { name:"Barbell Row (Overhand)", muscles:["Back","Biceps"] },
+  { name:"Barbell Row (Underhand)", muscles:["Back","Biceps"] },
+  { name:"Pendlay Row", muscles:["Back","Biceps"] },
+  { name:"Dumbbell Row (Single Arm)", muscles:["Back","Biceps"] },
+  { name:"Dumbbell Row (Both Arms)", muscles:["Back","Biceps"] },
+  { name:"Seated Cable Row (Close Grip)", muscles:["Back","Biceps"] },
+  { name:"Seated Cable Row (Wide Grip)", muscles:["Back","Biceps"] },
+  { name:"Seated Row (Machine)", muscles:["Back","Biceps"] },
+  { name:"T-Bar Row", muscles:["Back","Biceps"] },
+  { name:"T-Bar Row (Machine)", muscles:["Back","Biceps"] },
+  { name:"Lat Pulldown (Wide Grip)", muscles:["Lats","Biceps"] },
+  { name:"Lat Pulldown (Close Grip)", muscles:["Lats","Biceps"] },
+  { name:"Lat Pulldown (Neutral Grip)", muscles:["Lats","Biceps"] },
+  { name:"Lat Pulldown (Reverse Grip)", muscles:["Lats","Biceps"] },
+  { name:"Lat Pulldown (Single Arm)", muscles:["Lats","Biceps"] },
+  { name:"Pull-up", muscles:["Lats","Biceps","Back"] },
+  { name:"Pull-up (Weighted)", muscles:["Lats","Biceps","Back"] },
+  { name:"Chin-up", muscles:["Lats","Biceps"] },
+  { name:"Chin-up (Weighted)", muscles:["Lats","Biceps"] },
+  { name:"Neutral Grip Pull-up", muscles:["Lats","Biceps"] },
+  { name:"Assisted Pull-up (Machine)", muscles:["Lats","Biceps"] },
+  { name:"Straight Arm Pulldown", muscles:["Lats"] },
+  { name:"Pullover (Dumbbell)", muscles:["Lats","Chest"] },
+  { name:"Pullover (Cable)", muscles:["Lats"] },
+  { name:"Pullover (Machine)", muscles:["Lats"] },
+  { name:"Rack Pull", muscles:["Back","Traps"] },
+  { name:"Shrug (Barbell)", muscles:["Traps"] },
+  { name:"Shrug (Dumbbell)", muscles:["Traps"] },
+  { name:"Shrug (Smith Machine)", muscles:["Traps"] },
+  { name:"Shrug (Trap Bar)", muscles:["Traps"] },
+  { name:"Face Pull", muscles:["Rear Delts","Traps"] },
+  { name:"Reverse Fly (Dumbbell)", muscles:["Rear Delts","Back"] },
+  { name:"Reverse Fly (Cable)", muscles:["Rear Delts","Back"] },
+  { name:"Reverse Fly (Machine)", muscles:["Rear Delts","Back"] },
+  { name:"Hyperextension / Back Extension", muscles:["Lower Back","Glutes"] },
+  { name:"Hyperextension (Weighted)", muscles:["Lower Back","Glutes"] },
+  { name:"Good Morning (Barbell)", muscles:["Lower Back","Hamstrings"] },
+  { name:"Inverted Row", muscles:["Back","Biceps"] },
+  { name:"Meadows Row", muscles:["Back","Biceps"] },
+  { name:"Chest Supported Row (Dumbbell)", muscles:["Back","Biceps"] },
+  { name:"Chest Supported Row (Machine)", muscles:["Back","Biceps"] },
+  { name:"Helms Row", muscles:["Back","Biceps"] },
+  { name:"Seal Row", muscles:["Back","Biceps"] },
+
+  // ── SHOULDERS ──
+  { name:"Overhead Press (Barbell)", muscles:["Shoulders","Triceps"] },
+  { name:"Overhead Press (Dumbbell)", muscles:["Shoulders","Triceps"] },
+  { name:"Overhead Press (Smith Machine)", muscles:["Shoulders","Triceps"] },
+  { name:"Seated Shoulder Press (Barbell)", muscles:["Shoulders","Triceps"] },
+  { name:"Seated Shoulder Press (Dumbbell)", muscles:["Shoulders","Triceps"] },
+  { name:"Shoulder Press (Machine)", muscles:["Shoulders","Triceps"] },
+  { name:"Arnold Press", muscles:["Shoulders","Triceps"] },
+  { name:"Push Press", muscles:["Shoulders","Triceps","Legs"] },
+  { name:"Lateral Raise (Dumbbell)", muscles:["Side Delts"] },
+  { name:"Lateral Raise (Cable)", muscles:["Side Delts"] },
+  { name:"Lateral Raise (Machine)", muscles:["Side Delts"] },
+  { name:"Front Raise (Dumbbell)", muscles:["Front Delts"] },
+  { name:"Front Raise (Barbell)", muscles:["Front Delts"] },
+  { name:"Front Raise (Cable)", muscles:["Front Delts"] },
+  { name:"Upright Row (Barbell)", muscles:["Shoulders","Traps"] },
+  { name:"Upright Row (Dumbbell)", muscles:["Shoulders","Traps"] },
+  { name:"Upright Row (Cable)", muscles:["Shoulders","Traps"] },
+  { name:"Rear Delt Fly (Cable)", muscles:["Rear Delts"] },
+  { name:"Rear Delt Fly (Dumbbell)", muscles:["Rear Delts"] },
+  { name:"Rear Delt Fly (Machine)", muscles:["Rear Delts"] },
+  { name:"Lu Raise", muscles:["Shoulders"] },
+  { name:"Bus Driver", muscles:["Shoulders"] },
+  { name:"Plate Front Raise", muscles:["Front Delts"] },
+  { name:"Cable Lateral Raise (Behind)", muscles:["Side Delts"] },
+  { name:"Y-Raise", muscles:["Shoulders","Traps"] },
+
+  // ── BICEPS ──
+  { name:"Bicep Curl (Barbell)", muscles:["Biceps"] },
+  { name:"Bicep Curl (EZ Bar)", muscles:["Biceps"] },
+  { name:"Bicep Curl (Dumbbell)", muscles:["Biceps"] },
+  { name:"Bicep Curl (Cable)", muscles:["Biceps"] },
+  { name:"Bicep Curl (Machine)", muscles:["Biceps"] },
+  { name:"Hammer Curl (Dumbbell)", muscles:["Biceps","Forearms"] },
+  { name:"Hammer Curl (Cable - Rope)", muscles:["Biceps","Forearms"] },
+  { name:"Incline Curl (Dumbbell)", muscles:["Biceps"] },
+  { name:"Preacher Curl (Barbell)", muscles:["Biceps"] },
+  { name:"Preacher Curl (EZ Bar)", muscles:["Biceps"] },
+  { name:"Preacher Curl (Dumbbell)", muscles:["Biceps"] },
+  { name:"Preacher Curl (Machine)", muscles:["Biceps"] },
+  { name:"Concentration Curl", muscles:["Biceps"] },
+  { name:"Spider Curl (Dumbbell)", muscles:["Biceps"] },
+  { name:"Spider Curl (EZ Bar)", muscles:["Biceps"] },
+  { name:"Reverse Curl (Barbell)", muscles:["Forearms","Biceps"] },
+  { name:"Reverse Curl (EZ Bar)", muscles:["Forearms","Biceps"] },
+  { name:"Cross Body Hammer Curl", muscles:["Biceps","Forearms"] },
+  { name:"21s (Barbell Curl)", muscles:["Biceps"] },
+  { name:"Cable Curl (Straight Bar)", muscles:["Biceps"] },
+  { name:"Cable Curl (Bayesian)", muscles:["Biceps"] },
+  { name:"Drag Curl", muscles:["Biceps"] },
+
+  // ── TRICEPS ──
+  { name:"Tricep Pushdown (Cable - Bar)", muscles:["Triceps"] },
+  { name:"Tricep Pushdown (Cable - Rope)", muscles:["Triceps"] },
+  { name:"Tricep Pushdown (Cable - V-Bar)", muscles:["Triceps"] },
+  { name:"Overhead Tricep Extension (Cable - Rope)", muscles:["Triceps"] },
+  { name:"Overhead Tricep Extension (Dumbbell)", muscles:["Triceps"] },
+  { name:"Overhead Tricep Extension (EZ Bar)", muscles:["Triceps"] },
+  { name:"Skull Crusher (EZ Bar)", muscles:["Triceps"] },
+  { name:"Skull Crusher (Barbell)", muscles:["Triceps"] },
+  { name:"Skull Crusher (Dumbbell)", muscles:["Triceps"] },
+  { name:"Tricep Kickback (Dumbbell)", muscles:["Triceps"] },
+  { name:"Tricep Kickback (Cable)", muscles:["Triceps"] },
+  { name:"Close Grip Bench Press", muscles:["Triceps","Chest"] },
+  { name:"Dip (Tricep Focused)", muscles:["Triceps","Chest"] },
+  { name:"Dip (Assisted Machine)", muscles:["Triceps","Chest"] },
+  { name:"Bench Dip", muscles:["Triceps"] },
+  { name:"Diamond Push-up", muscles:["Triceps","Chest"] },
+  { name:"Tricep Extension (Machine)", muscles:["Triceps"] },
+  { name:"JM Press", muscles:["Triceps"] },
+
+  // ── LEGS — QUADS ──
+  { name:"Squat (Barbell - Back)", muscles:["Quads","Glutes","Hamstrings"] },
+  { name:"Squat (Barbell - Front)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Smith Machine)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Goblet)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Hack - Machine)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Hack - Barbell)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Belt)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Zercher)", muscles:["Quads","Glutes","Back"] },
+  { name:"Squat (Safety Bar)", muscles:["Quads","Glutes"] },
+  { name:"Squat (Sissy)", muscles:["Quads"] },
+  { name:"Squat (Bulgarian Split)", muscles:["Quads","Glutes"] },
+  { name:"Leg Press", muscles:["Quads","Glutes"] },
+  { name:"Leg Press (Single Leg)", muscles:["Quads","Glutes"] },
+  { name:"Leg Press (Close Stance)", muscles:["Quads"] },
+  { name:"Leg Press (Wide Stance)", muscles:["Glutes","Quads"] },
+  { name:"Leg Extension (Machine)", muscles:["Quads"] },
+  { name:"Leg Extension (Single Leg)", muscles:["Quads"] },
+  { name:"Lunge (Barbell)", muscles:["Quads","Glutes"] },
+  { name:"Lunge (Dumbbell)", muscles:["Quads","Glutes"] },
+  { name:"Lunge (Walking)", muscles:["Quads","Glutes"] },
+  { name:"Lunge (Reverse)", muscles:["Quads","Glutes"] },
+  { name:"Lunge (Smith Machine)", muscles:["Quads","Glutes"] },
+  { name:"Step-up (Dumbbell)", muscles:["Quads","Glutes"] },
+  { name:"Step-up (Barbell)", muscles:["Quads","Glutes"] },
+  { name:"Pendulum Squat", muscles:["Quads"] },
+  { name:"V-Squat Machine", muscles:["Quads","Glutes"] },
+  { name:"Wall Sit", muscles:["Quads"] },
+
+  // ── LEGS — HAMSTRINGS ──
+  { name:"Leg Curl (Lying - Machine)", muscles:["Hamstrings"] },
+  { name:"Leg Curl (Seated - Machine)", muscles:["Hamstrings"] },
+  { name:"Leg Curl (Standing - Machine)", muscles:["Hamstrings"] },
+  { name:"Leg Curl (Single Leg)", muscles:["Hamstrings"] },
+  { name:"Nordic Hamstring Curl", muscles:["Hamstrings"] },
+  { name:"Stiff Leg Deadlift (Barbell)", muscles:["Hamstrings","Back"] },
+  { name:"Stiff Leg Deadlift (Dumbbell)", muscles:["Hamstrings","Back"] },
+  { name:"Single Leg Romanian Deadlift", muscles:["Hamstrings","Glutes"] },
+  { name:"Glute Ham Raise", muscles:["Hamstrings","Glutes"] },
+
+  // ── LEGS — GLUTES ──
+  { name:"Hip Thrust (Barbell)", muscles:["Glutes","Hamstrings"] },
+  { name:"Hip Thrust (Smith Machine)", muscles:["Glutes","Hamstrings"] },
+  { name:"Hip Thrust (Machine)", muscles:["Glutes","Hamstrings"] },
+  { name:"Hip Thrust (Single Leg)", muscles:["Glutes"] },
+  { name:"Glute Bridge", muscles:["Glutes"] },
+  { name:"Glute Bridge (Weighted)", muscles:["Glutes"] },
+  { name:"Glute Kickback (Cable)", muscles:["Glutes"] },
+  { name:"Glute Kickback (Machine)", muscles:["Glutes"] },
+  { name:"Hip Abduction (Machine)", muscles:["Glutes"] },
+  { name:"Hip Adduction (Machine)", muscles:["Adductors"] },
+  { name:"Cable Pull Through", muscles:["Glutes","Hamstrings"] },
+  { name:"Sumo Squat (Dumbbell)", muscles:["Glutes","Quads","Adductors"] },
+  { name:"Curtsy Lunge", muscles:["Glutes","Quads"] },
+  { name:"Frog Pump", muscles:["Glutes"] },
+  { name:"Donkey Kick", muscles:["Glutes"] },
+  { name:"Fire Hydrant", muscles:["Glutes"] },
+  { name:"Banded Clamshell", muscles:["Glutes"] },
+
+  // ── CALVES ──
+  { name:"Calf Raise (Standing - Machine)", muscles:["Calves"] },
+  { name:"Calf Raise (Standing - Smith Machine)", muscles:["Calves"] },
+  { name:"Calf Raise (Standing - Dumbbell)", muscles:["Calves"] },
+  { name:"Calf Raise (Standing - Barbell)", muscles:["Calves"] },
+  { name:"Calf Raise (Seated - Machine)", muscles:["Calves"] },
+  { name:"Calf Raise (Leg Press)", muscles:["Calves"] },
+  { name:"Calf Raise (Single Leg)", muscles:["Calves"] },
+  { name:"Tibialis Raise", muscles:["Tibialis"] },
+
+  // ── ABS / CORE ──
+  { name:"Crunch", muscles:["Abs"] },
+  { name:"Crunch (Cable)", muscles:["Abs"] },
+  { name:"Crunch (Machine)", muscles:["Abs"] },
+  { name:"Crunch (Decline)", muscles:["Abs"] },
+  { name:"Sit-up", muscles:["Abs"] },
+  { name:"Sit-up (Weighted)", muscles:["Abs"] },
+  { name:"Leg Raise (Hanging)", muscles:["Abs"] },
+  { name:"Leg Raise (Lying)", muscles:["Abs"] },
+  { name:"Leg Raise (Captain's Chair)", muscles:["Abs"] },
+  { name:"Knee Raise (Hanging)", muscles:["Abs"] },
+  { name:"Ab Wheel Rollout", muscles:["Abs"] },
+  { name:"Plank", muscles:["Abs","Core"] },
+  { name:"Side Plank", muscles:["Obliques","Core"] },
+  { name:"Russian Twist", muscles:["Obliques","Abs"] },
+  { name:"Russian Twist (Weighted)", muscles:["Obliques","Abs"] },
+  { name:"Bicycle Crunch", muscles:["Abs","Obliques"] },
+  { name:"Mountain Climber", muscles:["Abs","Core"] },
+  { name:"Woodchop (Cable)", muscles:["Obliques","Core"] },
+  { name:"Pallof Press (Cable)", muscles:["Core","Obliques"] },
+  { name:"Dead Bug", muscles:["Abs","Core"] },
+  { name:"Dragon Flag", muscles:["Abs"] },
+  { name:"Toes to Bar", muscles:["Abs"] },
+  { name:"V-Up", muscles:["Abs"] },
+  { name:"Hollow Body Hold", muscles:["Abs","Core"] },
+
+  // ── FOREARMS ──
+  { name:"Wrist Curl (Barbell)", muscles:["Forearms"] },
+  { name:"Wrist Curl (Dumbbell)", muscles:["Forearms"] },
+  { name:"Reverse Wrist Curl (Barbell)", muscles:["Forearms"] },
+  { name:"Farmer's Walk", muscles:["Forearms","Traps","Core"] },
+  { name:"Dead Hang", muscles:["Forearms","Lats"] },
+  { name:"Plate Pinch", muscles:["Forearms"] },
+  { name:"Gripper", muscles:["Forearms"] },
+
+  // ── COMPOUND / FULL BODY ──
+  { name:"Deadlift (Trap Bar / Hex Bar)", muscles:["Back","Quads","Glutes"] },
+  { name:"Clean and Press", muscles:["Shoulders","Back","Legs"] },
+  { name:"Power Clean", muscles:["Back","Shoulders","Legs"] },
+  { name:"Snatch (Barbell)", muscles:["Shoulders","Back","Legs"] },
+  { name:"Thruster (Barbell)", muscles:["Quads","Shoulders"] },
+  { name:"Thruster (Dumbbell)", muscles:["Quads","Shoulders"] },
+  { name:"Kettlebell Swing", muscles:["Glutes","Hamstrings","Back"] },
+  { name:"Turkish Get-up", muscles:["Shoulders","Core","Legs"] },
+  { name:"Battle Ropes", muscles:["Shoulders","Core","Arms"] },
+  { name:"Box Jump", muscles:["Quads","Glutes","Calves"] },
+  { name:"Burpee", muscles:["Chest","Legs","Core"] },
+  { name:"Man Maker (Dumbbell)", muscles:["Full Body"] },
+  { name:"Sled Push", muscles:["Quads","Glutes","Core"] },
+  { name:"Sled Pull", muscles:["Back","Hamstrings","Core"] },
+
+  // ── CARDIO (trackable) ──
+  { name:"Treadmill Run", muscles:["Cardio"] },
+  { name:"Treadmill Walk (Incline)", muscles:["Cardio","Glutes"] },
+  { name:"Stairmaster", muscles:["Cardio","Glutes","Quads"] },
+  { name:"Rowing Machine", muscles:["Cardio","Back","Legs"] },
+  { name:"Stationary Bike", muscles:["Cardio","Quads"] },
+  { name:"Elliptical", muscles:["Cardio"] },
+  { name:"Assault Bike", muscles:["Cardio","Legs","Arms"] },
+  { name:"Jump Rope", muscles:["Cardio","Calves"] },
+];
+
+const MUSCLE_GROUPS = ["Chest","Upper Chest","Lower Chest","Back","Lats","Traps","Lower Back","Shoulders","Front Delts","Side Delts","Rear Delts","Biceps","Triceps","Forearms","Quads","Hamstrings","Glutes","Adductors","Calves","Tibialis","Abs","Obliques","Core","Cardio"];
+
+const MUSCLE_DISPLAY_MAP = {
+  "Chest":["Chest","Upper Chest","Lower Chest"],
+  "Back":["Back","Lats","Traps","Lower Back"],
+  "Shoulders":["Shoulders","Front Delts","Side Delts","Rear Delts"],
+  "Biceps":["Biceps"],
+  "Triceps":["Triceps"],
+  "Forearms":["Forearms"],
+  "Quads":["Quads"],
+  "Hamstrings":["Hamstrings"],
+  "Glutes":["Glutes","Adductors"],
+  "Calves":["Calves","Tibialis"],
+  "Core":["Abs","Obliques","Core"],
+};
+
+function getMusclesForExercise(name) {
+  const found = EXERCISE_DB.find(e => e.name === name);
+  return found ? found.muscles : [];
+}
+
+// ─── Utilities ───
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function formatTimer(s) { return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,"0")}`; }
+function formatDur(s) { if(s<60) return `${s}s`; const m=Math.floor(s/60); if(m<60) return `${m}m`; return `${Math.floor(m/60)}h ${m%60}m`; }
+
+function formatDate(ts) {
+  const d = new Date(ts), now = new Date();
+  if (d.getDate()===now.getDate()&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()) return "Today";
+  const yday = new Date(now); yday.setDate(yday.getDate()-1);
+  if (d.getDate()===yday.getDate()&&d.getMonth()===yday.getMonth()) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+}
+
+function formatFullDate(ts) { return new Date(ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" }); }
+
+// Epley formula: 1RM = weight × (1 + reps/30)
+function calc1RM(weight, reps) {
+  if (!weight || !reps || reps < 1) return 0;
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30));
+}
+
+// ─── Storage ───
+async function load(key, fb) { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fb; } catch { return fb; } }
+async function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch(e) { console.error(e); } }
+
+// ─── Styles ───
+const FONT = "'Outfit', sans-serif";
+const MONO = "'DM Mono', monospace";
+const GREEN = "#22c55e";
+const RED = "#ef4444";
+const AMBER = "#f59e0b";
+
+const overlay = { position:"fixed", inset:0, zIndex:90, background:"#0a0a0a", display:"flex", flexDirection:"column", fontFamily:FONT, overflow:"hidden", paddingTop:"env(safe-area-inset-top)" };
+const topBar = { padding:"14px 20px", display:"flex", alignItems:"center", gap:12, borderBottom:"1px solid rgba(255,255,255,0.05)", flexShrink:0 };
+const backBtn = { background:"none", border:"none", color:"rgba(255,255,255,0.5)", fontSize:22, cursor:"pointer", padding:4 };
+const card = { background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:14, padding:"16px", marginBottom:10 };
+const inputBase = { width:"100%", boxSizing:"border-box", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"11px 40px 11px 12px", color:"#fff", fontSize:16, outline:"none", fontFamily:MONO, fontVariantNumeric:"tabular-nums" };
+const unitLbl = { position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontSize:12, color:"rgba(255,255,255,0.2)", fontFamily:MONO, pointerEvents:"none" };
+const colHdr = { fontSize:11, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, fontFamily:FONT, textAlign:"center" };
+const btnG = { padding:"14px 32px", background:GREEN, border:"none", borderRadius:12, color:"#000", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:FONT };
+const btnS = { padding:"14px 32px", background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, color:"#fff", fontSize:16, fontWeight:500, cursor:"pointer", fontFamily:FONT };
+const chip = { padding:"9px 16px", borderRadius:10, fontSize:14, cursor:"pointer", fontFamily:MONO, transition:"all 0.2s" };
+const pillBtn = (active, color=GREEN) => ({
+  padding:"6px 12px", borderRadius:8, fontSize:12, cursor:"pointer", fontFamily:FONT, border:"none", transition:"all 0.15s",
+  background: active ? `${color}22` : "rgba(255,255,255,0.03)",
+  color: active ? color : "rgba(255,255,255,0.35)",
+});
+
+// ════════════════════════════════════════════════════════════════
+//  INLINE REST TIMER
+// ════════════════════════════════════════════════════════════════
+function InlineRestTimer({ duration, onDone }) {
+  const [remaining, setRemaining] = useState(duration);
+  const [running, setRunning] = useState(true);
+  const audioCtx = useRef(null);
+  const playBeep = useCallback(() => {
+    try { if (!audioCtx.current) audioCtx.current = new (window.AudioContext||window.webkitAudioContext)(); const c=audioCtx.current,o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(0.3,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.5);o.start();o.stop(c.currentTime+0.5); } catch{}
+  }, []);
+  useEffect(() => {
+    if (!running||remaining<=0) return;
+    const t=setInterval(()=>setRemaining(r=>{if(r<=1){setRunning(false);playBeep();return 0;}return r-1;}),1000);
+    return ()=>clearInterval(t);
+  }, [running, remaining, playBeep]);
+  const pct = duration>0 ? remaining/duration : 0;
+  const barColor = pct<0.2 ? RED : pct<0.5 ? AMBER : GREEN;
+  return (
+    <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:"12px 14px", margin:"6px 0", display:"flex", alignItems:"center", gap:12 }}>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
+          <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:FONT, textTransform:"uppercase", letterSpacing:1 }}>{remaining===0?"Rest complete":"Resting"}</span>
+          <span style={{ fontSize:20, fontWeight:300, color:"#fff", fontFamily:MONO, fontVariantNumeric:"tabular-nums" }}>{formatTimer(remaining)}</span>
+        </div>
+        <div style={{ height:3, background:"rgba(255,255,255,0.06)", borderRadius:2, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${pct*100}%`, background:barColor, borderRadius:2, transition:"width 1s linear, background 0.5s" }} />
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:5 }}>
+        {remaining>0 && <button onClick={()=>setRunning(r=>!r)} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:7, color:"rgba(255,255,255,0.4)", fontSize:11, padding:"5px 9px", cursor:"pointer", fontFamily:FONT }}>{running?"Pause":"Resume"}</button>}
+        <button onClick={onDone} style={{ background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:7, color:GREEN, fontSize:11, padding:"5px 9px", cursor:"pointer", fontFamily:FONT }}>{remaining===0?"Next":"Skip"}</button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SET ROW
+// ════════════════════════════════════════════════════════════════
+function SetRow({ set, index, onUpdate, onDelete, onConfirm, confirmed, prevSet }) {
+  return (
+    <div style={{ padding:"5px 0" }}>
+      {prevSet && !confirmed && (
+        <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 1fr 40px 40px", gap:8, marginBottom:2 }}>
+          <span/><span style={{ fontSize:10, color:"rgba(255,255,255,0.15)", fontFamily:MONO, textAlign:"center" }}>prev: {prevSet.weight}kg</span>
+          <span style={{ fontSize:10, color:"rgba(255,255,255,0.15)", fontFamily:MONO, textAlign:"center" }}>prev: {prevSet.reps}</span><span/><span/>
+        </div>
+      )}
+      <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 1fr 40px 40px", gap:8, alignItems:"center", opacity:confirmed?0.5:1 }}>
+        <span style={{ color:"rgba(255,255,255,0.25)", fontSize:13, fontFamily:MONO, textAlign:"center" }}>{index+1}</span>
+        <div style={{ position:"relative" }}>
+          <input type="number" inputMode="decimal" value={set.weight} onChange={e=>onUpdate({...set,weight:e.target.value})} placeholder="0" style={inputBase} disabled={confirmed} />
+          <span style={unitLbl}>kg</span>
+        </div>
+        <div style={{ position:"relative" }}>
+          <input type="number" inputMode="numeric" value={set.reps} onChange={e=>onUpdate({...set,reps:e.target.value})} placeholder="0" style={inputBase} disabled={confirmed} />
+          <span style={unitLbl}>reps</span>
+        </div>
+        {!confirmed ? (
+          <button onClick={onConfirm} disabled={!set.weight||!set.reps} style={{
+            background:set.weight&&set.reps?"rgba(34,197,94,0.15)":"rgba(255,255,255,0.03)", border:set.weight&&set.reps?"1px solid rgba(34,197,94,0.25)":"1px solid rgba(255,255,255,0.06)",
+            borderRadius:8, color:set.weight&&set.reps?GREEN:"rgba(255,255,255,0.15)", fontSize:16, cursor:set.weight&&set.reps?"pointer":"default", padding:0, width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center"
+          }}>✓</button>
+        ) : <span style={{ textAlign:"center", color:GREEN, fontSize:14 }}>✓</span>}
+        <button onClick={onDelete} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.1)", fontSize:16, cursor:"pointer", padding:2, borderRadius:6 }}
+          onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.1)"}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EXERCISE CARD (workout mode)
+// ════════════════════════════════════════════════════════════════
+function ExerciseCard({ exercise, onUpdate, onRemove, restDuration, exerciseHistory, notes, onNotesChange }) {
+  const [restingAfterSet, setRestingAfterSet] = useState(null);
+  const [showNotes, setShowNotes] = useState(false);
+
+  const lastSession = exerciseHistory && exerciseHistory.length > 0 ? exerciseHistory[0] : null;
+
+  const addSet = () => {
+    const last = exercise.sets[exercise.sets.length-1];
+    onUpdate({...exercise, sets:[...exercise.sets,{weight:last?.weight||"",reps:last?.reps||"",id:uid(),confirmed:false}]});
+  };
+  const updateSet = (i,set) => { const s=[...exercise.sets]; s[i]=set; onUpdate({...exercise,sets:s}); };
+  const deleteSet = (i) => { if(exercise.sets.length<=1) return; onUpdate({...exercise,sets:exercise.sets.filter((_,idx)=>idx!==i)}); };
+  const confirmSet = (i) => {
+    const s=[...exercise.sets]; s[i]={...s[i],confirmed:true}; onUpdate({...exercise,sets:s});
+    if (restDuration>0) setRestingAfterSet(i);
+  };
+
+  const vol = exercise.sets.reduce((s,st)=>s+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0);
+  const best1RM = exercise.sets.reduce((best,st)=>{const rm=calc1RM(parseFloat(st.weight)||0,parseInt(st.reps)||0); return rm>best?rm:best;},0);
+
+  return (
+    <div style={card}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+        <div>
+          <h3 style={{ margin:0, fontSize:15, fontWeight:600, color:"#fff", fontFamily:FONT }}>{exercise.name}</h3>
+          <div style={{ display:"flex", gap:10, marginTop:2 }}>
+            {vol>0 && <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>vol: {vol.toLocaleString()}kg</span>}
+            {best1RM>0 && <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>e1RM: {best1RM}kg</span>}
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:4 }}>
+          <button onClick={()=>setShowNotes(!showNotes)} style={{ background:showNotes?"rgba(255,255,255,0.08)":"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:7, color:"rgba(255,255,255,0.3)", fontSize:11, padding:"4px 8px", cursor:"pointer" }}>📝</button>
+          <button onClick={onRemove} style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.12)", borderRadius:7, color:RED, fontSize:11, padding:"4px 8px", cursor:"pointer", fontFamily:FONT }}>Remove</button>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {showNotes && (
+        <textarea value={notes||""} onChange={e=>onNotesChange(e.target.value)} placeholder="Add notes (e.g. felt tight on left shoulder, try wider grip)..."
+          style={{ width:"100%", boxSizing:"border-box", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:"10px 12px", color:"rgba(255,255,255,0.7)", fontSize:13, fontFamily:FONT, outline:"none", resize:"vertical", minHeight:50, marginBottom:10 }} />
+      )}
+
+      {/* Previous session hint */}
+      {lastSession && (
+        <div style={{ padding:"8px 10px", background:"rgba(255,255,255,0.015)", borderRadius:8, marginBottom:10, border:"1px solid rgba(255,255,255,0.03)" }}>
+          <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:1 }}>Last session</span>
+          <div style={{ display:"flex", gap:8, marginTop:3, flexWrap:"wrap" }}>
+            {lastSession.sets.map((s,i)=>(
+              <span key={i} style={{ fontSize:11, color:"rgba(255,255,255,0.3)", fontFamily:MONO }}>{s.weight}×{s.reps}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 1fr 40px 40px", gap:8, marginBottom:4 }}>
+        <span style={colHdr}>Set</span><span style={colHdr}>Weight</span><span style={colHdr}>Reps</span><span/><span/>
+      </div>
+      {exercise.sets.map((set,i) => (
+        <div key={set.id}>
+          <SetRow set={set} index={i} onUpdate={s=>updateSet(i,s)} onDelete={()=>deleteSet(i)}
+            onConfirm={()=>confirmSet(i)} confirmed={set.confirmed}
+            prevSet={lastSession?.sets?.[i]} />
+          {restingAfterSet===i && <InlineRestTimer duration={restDuration} onDone={()=>setRestingAfterSet(null)} />}
+        </div>
+      ))}
+      <button onClick={addSet} style={{ width:"100%", marginTop:8, padding:"9px", background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.35)", fontSize:13, cursor:"pointer", fontFamily:FONT }}>+ Add Set</button>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EXERCISE PICKER (with categories)
+// ════════════════════════════════════════════════════════════════
+function ExercisePicker({ onSelect, onClose }) {
+  const [search, setSearch] = useState("");
+  const [filterMuscle, setFilterMuscle] = useState(null);
+  const ref = useRef(null);
+  useEffect(()=>{ref.current?.focus();},[]);
+
+  const categories = [null,"Chest","Back","Shoulders","Biceps","Triceps","Quads","Hamstrings","Glutes","Calves","Core","Forearms","Compound","Cardio"];
+
+  let filtered = EXERCISE_DB;
+  if (search) filtered = filtered.filter(e=>e.name.toLowerCase().includes(search.toLowerCase()));
+  if (filterMuscle) {
+    if (filterMuscle==="Compound") filtered = filtered.filter(e=>e.muscles.length>=3);
+    else if (filterMuscle==="Cardio") filtered = filtered.filter(e=>e.muscles.includes("Cardio"));
+    else {
+      const related = MUSCLE_DISPLAY_MAP[filterMuscle] || [filterMuscle];
+      filtered = filtered.filter(e=>e.muscles.some(m=>related.includes(m)));
+    }
+  }
+
+  return (
+    <div style={{...overlay, zIndex:100}}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <input ref={ref} type="text" value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder={`Search ${EXERCISE_DB.length} exercises...`}
+          style={{ flex:1, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", color:"#fff", fontSize:16, outline:"none", fontFamily:FONT }} />
+      </div>
+      {/* Category filters */}
+      <div style={{ padding:"8px 20px", display:"flex", gap:6, overflowX:"auto", flexShrink:0, WebkitOverflowScrolling:"touch" }}>
+        {categories.map(c=>(
+          <button key={c||"all"} onClick={()=>setFilterMuscle(c)} style={{ ...pillBtn(filterMuscle===c), whiteSpace:"nowrap", flexShrink:0 }}>{c||"All"}</button>
+        ))}
+      </div>
+      {/* Custom exercise */}
+      {search && !EXERCISE_DB.some(e=>e.name.toLowerCase()===search.toLowerCase()) && (
+        <button onClick={()=>onSelect(search)} style={{ margin:"6px 20px 0", padding:"13px", background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:12, color:GREEN, fontSize:14, cursor:"pointer", textAlign:"left", fontFamily:FONT }}>
+          + Add "{search}" as custom exercise
+        </button>
+      )}
+      {/* Results count */}
+      <div style={{ padding:"4px 20px", fontSize:11, color:"rgba(255,255,255,0.15)" }}>{filtered.length} exercises</div>
+      {/* Exercise list */}
+      <div style={{ flex:1, overflow:"auto", padding:"4px 20px 20px" }}>
+        {filtered.map(ex=>(
+          <button key={ex.name} onClick={()=>onSelect(ex.name)} style={{
+            display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%",
+            background:"rgba(255,255,255,0.02)", border:"none", borderRadius:10, padding:"12px 14px",
+            color:"rgba(255,255,255,0.8)", fontSize:15, cursor:"pointer", textAlign:"left", fontFamily:FONT,
+            marginBottom:2, transition:"background 0.15s"
+          }} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+            onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.02)"}>
+            <span>{ex.name}</span>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", fontFamily:MONO }}>{ex.muscles.slice(0,2).join(", ")}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REST SETTINGS MODAL
+// ════════════════════════════════════════════════════════════════
+function RestSettings({ value, onChange, onClose }) {
+  const presets = [0,30,45,60,90,120,180];
+  return (
+    <div style={{...overlay,zIndex:110,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(20px)",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#1a1a1a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:20, padding:28, width:"min(340px,88vw)" }}>
+        <h3 style={{ margin:"0 0 6px", fontSize:17, fontWeight:600, color:"#fff" }}>Auto Rest Timer</h3>
+        <p style={{ margin:"0 0 20px", fontSize:13, color:"rgba(255,255,255,0.35)" }}>Starts after confirming each set</p>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          {presets.map(s=>(<button key={s} onClick={()=>onChange(s)} style={{...chip,flex:"1 0 auto",textAlign:"center",
+            background:value===s?"rgba(34,197,94,0.15)":"rgba(255,255,255,0.04)", color:value===s?GREEN:"rgba(255,255,255,0.4)",
+            border:value===s?"1px solid rgba(34,197,94,0.3)":"1px solid rgba(255,255,255,0.08)"}}>{s===0?"Off":formatTimer(s)}</button>))}
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginTop:16, justifyContent:"center" }}>
+          <button onClick={()=>onChange(Math.max(0,value-5))} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, color:"rgba(255,255,255,0.4)", fontSize:13, padding:"7px 14px", cursor:"pointer", fontFamily:MONO }}>−5s</button>
+          <span style={{ fontSize:24, fontWeight:300, color:"#fff", fontFamily:MONO, fontVariantNumeric:"tabular-nums", minWidth:60, textAlign:"center" }}>{formatTimer(value)}</span>
+          <button onClick={()=>onChange(value+5)} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, color:"rgba(255,255,255,0.4)", fontSize:13, padding:"7px 14px", cursor:"pointer", fontFamily:MONO }}>+5s</button>
+        </div>
+        <button onClick={onClose} style={{...btnG,width:"100%",marginTop:20,padding:"13px"}}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PROGRESS / STATS PAGE
+// ════════════════════════════════════════════════════════════════
+function ProgressPage({ history, exerciseNotes, onClose }) {
+  const [selectedEx, setSelectedEx] = useState(null);
+  const [tab, setTab] = useState("exercises"); // exercises | heatmap
+
+  // Build exercise list from history
+  const exerciseMap = {};
+  history.forEach(w => {
+    w.exercises.forEach(ex => {
+      if (!exerciseMap[ex.name]) exerciseMap[ex.name] = [];
+      exerciseMap[ex.name].push({ date:w.date, sets:ex.sets });
+    });
+  });
+  const exerciseNames = Object.keys(exerciseMap).sort();
+
+  // Muscle heatmap data (last 30 days)
+  const thirtyDaysAgo = Date.now() - 30*86400000;
+  const recentMuscleHits = {};
+  history.filter(w=>w.date>thirtyDaysAgo).forEach(w=>{
+    w.exercises.forEach(ex=>{
+      const muscles = getMusclesForExercise(ex.name);
+      const sets = ex.sets.filter(s=>s.weight&&s.reps).length;
+      muscles.forEach(m=>{ recentMuscleHits[m] = (recentMuscleHits[m]||0) + sets; });
+    });
+  });
+
+  // Absolute thresholds (sets per 30 days) based on hypertrophy science
+  // ~10 sets/week = 40/month is solid; scale accordingly
+  const VOLUME_CAP = 60; // for bar width scaling
+  function volumeColor(sets) {
+    if (sets <= 0) return "rgba(255,255,255,0.15)";
+    if (sets < 10) return RED;       // under ~2-3 sets/week — undertrained
+    if (sets < 20) return AMBER;     // ~3-5 sets/week — low but something
+    if (sets < 35) return "#a3e635"; // ~5-9 sets/week — moderate
+    return GREEN;                     // 9+ sets/week — solid volume
+  }
+  function volumeLabel(sets) {
+    if (sets <= 0) return "Not trained";
+    if (sets < 10) return "Undertrained";
+    if (sets < 20) return "Low";
+    if (sets < 35) return "Moderate";
+    return "Solid";
+  }
+  const maxHits = Math.max(...Object.values(recentMuscleHits), 1);
+
+  if (selectedEx) {
+    const sessions = exerciseMap[selectedEx] || [];
+    const allTimePR = sessions.reduce((best,sess)=>{
+      sess.sets.forEach(s=>{const w=parseFloat(s.weight)||0; if(w>best) best=w;});
+      return best;
+    },0);
+    const allTime1RM = sessions.reduce((best,sess)=>{
+      sess.sets.forEach(s=>{const rm=calc1RM(parseFloat(s.weight)||0,parseInt(s.reps)||0); if(rm>best) best=rm;});
+      return best;
+    },0);
+    const totalSessions = sessions.length;
+
+    // Chart data (e1RM over time)
+    const chartPoints = sessions.slice().reverse().map(sess => {
+      const best = sess.sets.reduce((b,s)=>{const rm=calc1RM(parseFloat(s.weight)||0,parseInt(s.reps)||0);return rm>b?rm:b;},0);
+      return { date:sess.date, value:best };
+    });
+
+    const chartMax = Math.max(...chartPoints.map(p=>p.value),1);
+    const chartMin = Math.min(...chartPoints.map(p=>p.value),0);
+    const range = chartMax-chartMin || 1;
+
+    const note = exerciseNotes?.[selectedEx] || "";
+
+    return (
+      <div style={{...overlay, overflow:"auto"}}>
+        <div style={topBar}>
+          <button onClick={()=>setSelectedEx(null)} style={backBtn}>←</button>
+          <h2 style={{ margin:0, fontSize:17, fontWeight:700, color:"#fff", flex:1 }}>{selectedEx}</h2>
+        </div>
+        <div style={{ padding:"16px 20px 40px", flex:1, overflow:"auto" }}>
+          {/* PR Cards */}
+          <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+            <div style={{...card, flex:1, textAlign:"center", padding:"14px 10px"}}>
+              <div style={{ fontSize:24, fontWeight:700, color:AMBER, fontFamily:MONO }}>{allTimePR}kg</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1, marginTop:2 }}>Weight PR</div>
+            </div>
+            <div style={{...card, flex:1, textAlign:"center", padding:"14px 10px"}}>
+              <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:MONO }}>{allTime1RM}kg</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1, marginTop:2 }}>Est. 1RM</div>
+            </div>
+            <div style={{...card, flex:1, textAlign:"center", padding:"14px 10px"}}>
+              <div style={{ fontSize:24, fontWeight:700, color:"rgba(255,255,255,0.7)", fontFamily:MONO }}>{totalSessions}</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1, marginTop:2 }}>Sessions</div>
+            </div>
+          </div>
+
+          {/* Progress Chart */}
+          {chartPoints.length > 1 && (
+            <div style={{...card, padding:"16px"}}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:12 }}>Estimated 1RM Progress</div>
+              <div style={{ position:"relative", height:140 }}>
+                {/* Y axis labels */}
+                <div style={{ position:"absolute", left:0, top:0, bottom:0, width:36, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+                  <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", fontFamily:MONO }}>{chartMax}</span>
+                  <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", fontFamily:MONO }}>{chartMin}</span>
+                </div>
+                {/* Chart area */}
+                <svg viewBox={`0 0 ${Math.max(chartPoints.length-1,1)*40+20} 120`} style={{ marginLeft:40, width:"calc(100% - 40px)", height:140 }} preserveAspectRatio="none">
+                  {/* Grid lines */}
+                  {[0,0.25,0.5,0.75,1].map(p=>(
+                    <line key={p} x1="0" y1={p*120} x2={Math.max(chartPoints.length-1,1)*40+20} y2={p*120} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+                  ))}
+                  {/* Line */}
+                  <polyline fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    points={chartPoints.map((p,i)=>`${i*40+10},${120-((p.value-chartMin)/range)*110}`).join(" ")} />
+                  {/* Dots */}
+                  {chartPoints.map((p,i)=>(
+                    <circle key={i} cx={i*40+10} cy={120-((p.value-chartMin)/range)*110} r="4" fill={GREEN} />
+                  ))}
+                </svg>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginTop:4, marginLeft:40 }}>
+                <span style={{ fontSize:9, color:"rgba(255,255,255,0.15)", fontFamily:MONO }}>{formatDate(chartPoints[0]?.date)}</span>
+                <span style={{ fontSize:9, color:"rgba(255,255,255,0.15)", fontFamily:MONO }}>{formatDate(chartPoints[chartPoints.length-1]?.date)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {note && (
+            <div style={{...card, padding:"12px 14px"}}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:6 }}>Notes</div>
+              <p style={{ margin:0, fontSize:14, color:"rgba(255,255,255,0.5)", fontFamily:FONT, lineHeight:1.5 }}>{note}</p>
+            </div>
+          )}
+
+          {/* Session History */}
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:8, marginTop:8 }}>Session History</div>
+          {sessions.map((sess,i) => {
+            const sessVol = sess.sets.reduce((s,st)=>s+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0);
+            const sess1RM = sess.sets.reduce((b,s)=>{const rm=calc1RM(parseFloat(s.weight)||0,parseInt(s.reps)||0);return rm>b?rm:b;},0);
+            return (
+              <div key={i} style={{...card, padding:"12px 14px"}}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontSize:13, fontWeight:600, color:"#fff" }}>{formatFullDate(sess.date)}</span>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>{sessVol}kg vol</span>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>e1RM: {sess1RM}kg</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {sess.sets.filter(s=>s.weight&&s.reps).map((s,j)=>(
+                    <span key={j} style={{ fontSize:12, padding:"4px 8px", borderRadius:6, background:"rgba(255,255,255,0.03)", color:"rgba(255,255,255,0.4)", fontFamily:MONO }}>
+                      {s.weight}kg × {s.reps}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{...overlay, overflow:"auto"}}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:"#fff", flex:1 }}>Progress</h2>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ padding:"8px 20px", display:"flex", gap:8, borderBottom:"1px solid rgba(255,255,255,0.04)", flexShrink:0 }}>
+        <button onClick={()=>setTab("exercises")} style={pillBtn(tab==="exercises")}>Exercises & PRs</button>
+        <button onClick={()=>setTab("heatmap")} style={pillBtn(tab==="heatmap")}>Heatmap</button>
+        <button onClick={()=>setTab("bodymap")} style={pillBtn(tab==="bodymap")}>Body Map</button>
+      </div>
+
+      <div style={{ flex:1, overflow:"auto", padding:"12px 20px 40px" }}>
+        {tab==="exercises" && (
+          <>
+            {exerciseNames.length===0 && <p style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.15)", fontSize:14 }}>Complete some workouts to see your progress</p>}
+            {exerciseNames.map(name => {
+              const sessions = exerciseMap[name];
+              const pr = sessions.reduce((b,s)=>{s.sets.forEach(st=>{const w=parseFloat(st.weight)||0;if(w>b)b=w;});return b;},0);
+              const e1rm = sessions.reduce((b,s)=>{s.sets.forEach(st=>{const rm=calc1RM(parseFloat(st.weight)||0,parseInt(st.reps)||0);if(rm>b)b=rm;});return b;},0);
+              const muscles = getMusclesForExercise(name);
+              return (
+                <button key={name} onClick={()=>setSelectedEx(name)} style={{
+                  ...card, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center",
+                  width:"100%", textAlign:"left", transition:"background 0.15s"
+                }} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.025)"}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:600, color:"#fff", fontFamily:FONT }}>{name}</div>
+                    <div style={{ display:"flex", gap:4, marginTop:4 }}>
+                      {muscles.slice(0,3).map(m=><span key={m} style={{ fontSize:10, padding:"2px 6px", borderRadius:4, background:"rgba(255,255,255,0.04)", color:"rgba(255,255,255,0.25)" }}>{m}</span>)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:15, fontWeight:600, color:AMBER, fontFamily:MONO }}>{pr}kg</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>e1RM: {e1rm}kg</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.15)", fontFamily:MONO }}>{sessions.length} sessions</div>
+                  </div>
+                </button>
+              );
+            })}
+          </>
+        )}
+
+        {tab==="heatmap" && (
+          <>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)", margin:"0 0 16px" }}>Sets per muscle group — last 30 days</p>
+            {Object.keys(recentMuscleHits).length===0 && <p style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.15)", fontSize:14 }}>Complete some workouts to see your heatmap</p>}
+            {Object.entries(MUSCLE_DISPLAY_MAP).map(([group, subMuscles]) => {
+              const totalHits = subMuscles.reduce((s,m)=>s+(recentMuscleHits[m]||0),0);
+              if (totalHits===0) return (
+                <div key={group} style={{ ...card, padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", opacity:0.4 }}>
+                  <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)", fontFamily:FONT }}>{group}</span>
+                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.15)", fontFamily:MONO }}>0 sets</span>
+                </div>
+              );
+              const barColor = volumeColor(totalHits);
+              const barWidth = Math.min(totalHits / VOLUME_CAP * 100, 100);
+              return (
+                <div key={group} style={{...card, padding:"12px 14px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                    <span style={{ fontSize:14, fontWeight:600, color:"#fff", fontFamily:FONT }}>{group}</span>
+                    <div style={{ textAlign:"right" }}>
+                      <span style={{ fontSize:13, fontWeight:600, color:barColor, fontFamily:MONO }}>{totalHits} sets</span>
+                      <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", marginLeft:6 }}>{volumeLabel(totalHits)}</span>
+                    </div>
+                  </div>
+                  <div style={{ height:6, background:"rgba(255,255,255,0.04)", borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ height:"100%", width:`${barWidth}%`, background:barColor, borderRadius:3, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ display:"flex", gap:4, marginTop:6, flexWrap:"wrap" }}>
+                    {subMuscles.filter(m=>recentMuscleHits[m]).map(m=>(
+                      <span key={m} style={{ fontSize:10, padding:"2px 6px", borderRadius:4, background:"rgba(255,255,255,0.03)", color:"rgba(255,255,255,0.25)" }}>{m}: {recentMuscleHits[m]}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {tab==="bodymap" && (
+          <BodyMapTab recentMuscleHits={recentMuscleHits} maxHits={maxHits} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  BODY MAP SVG COMPONENT
+// ════════════════════════════════════════════════════════════════
+function getHeatColor(intensity, totalSets) {
+  if (totalSets <= 0) return "rgba(255,255,255,0.04)";
+  if (totalSets < 10) return "#7f1d1d";
+  if (totalSets < 20) return "#92400e";
+  if (totalSets < 35) return "#365314";
+  return "#15803d";
+}
+
+function getHeatLabel(intensity, totalSets) {
+  if (totalSets <= 0) return "Not trained";
+  if (totalSets < 10) return "Undertrained";
+  if (totalSets < 20) return "Low";
+  if (totalSets < 35) return "Moderate";
+  return "Solid";
+}
+
+// Muscle group -> which sub-muscles to sum for body map
+const BODY_MAP_GROUPS = {
+  "Chest": ["Chest","Upper Chest","Lower Chest"],
+  "Shoulders": ["Shoulders","Front Delts","Side Delts"],
+  "Biceps": ["Biceps"],
+  "Triceps": ["Triceps"],
+  "Forearms": ["Forearms"],
+  "Abs": ["Abs","Obliques","Core"],
+  "Quads": ["Quads"],
+  "Calves_front": ["Calves","Tibialis"],
+  // Back view
+  "Traps": ["Traps"],
+  "Upper Back": ["Back","Lats"],
+  "Lats": ["Lats"],
+  "Lower Back": ["Lower Back"],
+  "Rear Delts": ["Rear Delts"],
+  "Glutes": ["Glutes","Adductors"],
+  "Hamstrings": ["Hamstrings"],
+  "Calves_back": ["Calves"],
+};
+
+function BodyMapTab({ recentMuscleHits, maxHits }) {
+  const [hoveredMuscle, setHoveredMuscle] = useState(null);
+
+  const getSets = (group) => {
+    const subs = BODY_MAP_GROUPS[group] || [];
+    return subs.reduce((s,m) => s + (recentMuscleHits[m]||0), 0);
+  };
+
+  const muscleProps = (group) => {
+    const totalSets = getSets(group);
+    return {
+      fill: getHeatColor(null, totalSets),
+      stroke: hoveredMuscle === group ? "#fff" : "rgba(255,255,255,0.1)",
+      strokeWidth: hoveredMuscle === group ? 1.5 : 0.5,
+      style: { cursor:"pointer", transition:"fill 0.3s, stroke 0.2s" },
+      onMouseEnter: () => setHoveredMuscle(group),
+      onMouseLeave: () => setHoveredMuscle(null),
+    };
+  };
+
+  const legendItems = [
+    { label:"Not trained", color:"rgba(255,255,255,0.04)", border:true },
+    { label:"Undertrained (<10)", color:"#7f1d1d" },
+    { label:"Low (10-19)", color:"#92400e" },
+    { label:"Moderate (20-34)", color:"#365314" },
+    { label:"Solid (35+)", color:"#15803d" },
+  ];
+
+  return (
+    <>
+      <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)", margin:"0 0 12px" }}>Muscles worked — last 30 days</p>
+
+      {/* Legend */}
+      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}>
+        {legendItems.map(item => (
+          <div key={item.label} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 8px", borderRadius:6, background:"rgba(255,255,255,0.02)" }}>
+            <div style={{ width:12, height:12, borderRadius:3, background:item.color, border: item.border ? "1px solid rgba(255,255,255,0.1)" : "none" }} />
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:FONT }}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Hovered muscle info */}
+      <div style={{ height:36, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:8 }}>
+        {hoveredMuscle ? (
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 14px", borderRadius:10, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ width:10, height:10, borderRadius:3, background:getHeatColor(null, getSets(hoveredMuscle)) }} />
+            <span style={{ fontSize:13, color:"#fff", fontWeight:600, fontFamily:FONT }}>{hoveredMuscle.replace("_front","").replace("_back","")}</span>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontFamily:MONO }}>{getSets(hoveredMuscle)} sets</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)" }}>· {getHeatLabel(null, getSets(hoveredMuscle))}</span>
+          </div>
+        ) : (
+          <span style={{ fontSize:12, color:"rgba(255,255,255,0.15)" }}>Hover or tap a muscle group</span>
+        )}
+      </div>
+
+      {/* Body diagrams side by side */}
+      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+        {/* FRONT VIEW */}
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:6 }}>Front</div>
+          <svg viewBox="0 0 200 420" width="170" height="360">
+            {/* Head */}
+            <ellipse cx="100" cy="30" rx="18" ry="22" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+            {/* Neck */}
+            <rect x="92" y="50" width="16" height="14" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+
+            {/* Shoulders (front delts) - Left */}
+            <path d="M68,68 Q58,65 52,78 Q50,86 54,96 L68,92 L68,68Z" {...muscleProps("Shoulders")} />
+            {/* Shoulders (front delts) - Right */}
+            <path d="M132,68 Q142,65 148,78 Q150,86 146,96 L132,92 L132,68Z" {...muscleProps("Shoulders")} />
+
+            {/* Chest - Left */}
+            <path d="M68,68 L68,92 L72,106 Q82,112 98,108 L98,68 Q88,62 68,68Z" {...muscleProps("Chest")} />
+            {/* Chest - Right */}
+            <path d="M132,68 L132,92 L128,106 Q118,112 102,108 L102,68 Q112,62 132,68Z" {...muscleProps("Chest")} />
+
+            {/* Biceps - Left */}
+            <path d="M52,96 L46,130 Q44,148 48,158 L58,158 Q64,148 62,130 L68,96 L54,96Z" {...muscleProps("Biceps")} />
+            {/* Biceps - Right */}
+            <path d="M148,96 L154,130 Q156,148 152,158 L142,158 Q136,148 138,130 L132,96 L146,96Z" {...muscleProps("Biceps")} />
+
+            {/* Forearms - Left */}
+            <path d="M48,158 L44,200 Q42,218 44,232 L54,232 Q58,218 56,200 L58,158Z" {...muscleProps("Forearms")} />
+            {/* Forearms - Right */}
+            <path d="M152,158 L156,200 Q158,218 156,232 L146,232 Q142,218 144,200 L142,158Z" {...muscleProps("Forearms")} />
+
+            {/* Abs */}
+            <path d="M80,108 L80,200 Q82,210 100,212 Q118,210 120,200 L120,108 Q110,114 100,114 Q90,114 80,108Z" {...muscleProps("Abs")} />
+
+            {/* Quads - Left */}
+            <path d="M76,212 L72,280 Q70,300 74,320 L96,320 Q98,300 98,280 L98,212 Q90,216 76,212Z" {...muscleProps("Quads")} />
+            {/* Quads - Right */}
+            <path d="M124,212 L128,280 Q130,300 126,320 L104,320 Q102,300 102,280 L102,212 Q110,216 124,212Z" {...muscleProps("Quads")} />
+
+            {/* Calves - Left */}
+            <path d="M74,326 L72,360 Q70,380 74,398 L92,398 Q96,380 94,360 L96,326 L74,326Z" {...muscleProps("Calves_front")} />
+            {/* Calves - Right */}
+            <path d="M126,326 L128,360 Q130,380 126,398 L108,398 Q104,380 106,360 L104,326 L126,326Z" {...muscleProps("Calves_front")} />
+
+            {/* Knees (just cosmetic) */}
+            <ellipse cx="85" cy="323" rx="12" ry="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+            <ellipse cx="115" cy="323" rx="12" ry="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+          </svg>
+        </div>
+
+        {/* BACK VIEW */}
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:6 }}>Back</div>
+          <svg viewBox="0 0 200 420" width="170" height="360">
+            {/* Head */}
+            <ellipse cx="100" cy="30" rx="18" ry="22" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+            {/* Neck */}
+            <rect x="92" y="50" width="16" height="14" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+
+            {/* Traps */}
+            <path d="M78,62 L68,68 L68,82 L82,78 L98,76 L98,62 Q88,58 78,62Z" {...muscleProps("Traps")} />
+            <path d="M122,62 L132,68 L132,82 L118,78 L102,76 L102,62 Q112,58 122,62Z" {...muscleProps("Traps")} />
+
+            {/* Rear Delts - Left */}
+            <path d="M68,68 Q56,65 50,80 Q48,88 52,96 L66,92 L68,82 L68,68Z" {...muscleProps("Rear Delts")} />
+            {/* Rear Delts - Right */}
+            <path d="M132,68 Q144,65 150,80 Q152,88 148,96 L134,92 L132,82 L132,68Z" {...muscleProps("Rear Delts")} />
+
+            {/* Upper Back / Lats - Left */}
+            <path d="M68,82 L66,92 L64,120 L70,148 L80,148 L82,130 L84,110 L82,78 L68,82Z" {...muscleProps("Upper Back")} />
+            {/* Upper Back / Lats - Right */}
+            <path d="M132,82 L134,92 L136,120 L130,148 L120,148 L118,130 L116,110 L118,78 L132,82Z" {...muscleProps("Upper Back")} />
+
+            {/* Triceps - Left */}
+            <path d="M52,96 L46,130 Q44,148 48,158 L58,158 Q62,148 60,130 L66,96 L52,96Z" {...muscleProps("Triceps")} />
+            {/* Triceps - Right */}
+            <path d="M148,96 L154,130 Q156,148 152,158 L142,158 Q138,148 140,130 L134,96 L148,96Z" {...muscleProps("Triceps")} />
+
+            {/* Forearms back - Left */}
+            <path d="M48,158 L44,200 Q42,218 44,232 L54,232 Q58,218 56,200 L58,158Z" {...muscleProps("Forearms")} />
+            {/* Forearms back - Right */}
+            <path d="M152,158 L156,200 Q158,218 156,232 L146,232 Q142,218 144,200 L142,158Z" {...muscleProps("Forearms")} />
+
+            {/* Lower Back / Spinal erectors */}
+            <path d="M84,110 L82,148 L80,180 Q82,200 100,204 Q118,200 120,180 L118,148 L116,110 Q108,116 100,116 Q92,116 84,110Z" {...muscleProps("Lower Back")} />
+
+            {/* Glutes - Left */}
+            <path d="M76,204 Q72,216 72,226 Q74,244 84,250 L100,248 L100,204 Q90,208 76,204Z" {...muscleProps("Glutes")} />
+            {/* Glutes - Right */}
+            <path d="M124,204 Q128,216 128,226 Q126,244 116,250 L100,248 L100,204 Q110,208 124,204Z" {...muscleProps("Glutes")} />
+
+            {/* Hamstrings - Left */}
+            <path d="M74,252 L72,290 Q70,310 74,320 L96,320 Q98,310 96,290 L98,252 Q88,256 74,252Z" {...muscleProps("Hamstrings")} />
+            {/* Hamstrings - Right */}
+            <path d="M126,252 L128,290 Q130,310 126,320 L104,320 Q102,310 104,290 L102,252 Q112,256 126,252Z" {...muscleProps("Hamstrings")} />
+
+            {/* Calves back - Left */}
+            <path d="M74,326 L72,360 Q70,380 74,398 L92,398 Q96,380 94,360 L96,326 L74,326Z" {...muscleProps("Calves_back")} />
+            {/* Calves back - Right */}
+            <path d="M126,326 L128,360 Q130,380 126,398 L108,398 Q104,380 106,360 L104,326 L126,326Z" {...muscleProps("Calves_back")} />
+
+            {/* Knees cosmetic */}
+            <ellipse cx="85" cy="323" rx="12" ry="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+            <ellipse cx="115" cy="323" rx="12" ry="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Summary below body */}
+      <div style={{ marginTop:16 }}>
+        <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>Breakdown</div>
+        {Object.entries(BODY_MAP_GROUPS).map(([group]) => {
+          const sets = getSets(group);
+          const displayName = group.replace("_front","").replace("_back","");
+          if (group.includes("_back") && BODY_MAP_GROUPS[group.replace("_back","_front")]) return null;
+          if (group === "Calves_front") {
+            const totalCalves = (BODY_MAP_GROUPS["Calves_front"]||[]).reduce((s,m)=>s+(recentMuscleHits[m]||0),0);
+            return (
+              <div key="Calves" style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ width:8, height:8, borderRadius:2, background:getHeatColor(null, totalCalves) }} />
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>Calves</span>
+                </div>
+                <span style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontFamily:MONO }}>{totalCalves} sets</span>
+              </div>
+            );
+          }
+          if (group === "Calves_back") return null;
+          return (
+            <div key={group} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:8, height:8, borderRadius:2, background:getHeatColor(null, sets) }} />
+                <span style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>{displayName}</span>
+              </div>
+              <span style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontFamily:MONO }}>{sets} sets</span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CALENDAR PAGE
+// ════════════════════════════════════════════════════════════════
+function CalendarPage({ history, onClose }) {
+  const [viewDate, setViewDate] = useState(new Date());
+  const year = viewDate.getFullYear(), month = viewDate.getMonth();
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  const today = new Date();
+
+  const workoutDays = new Map();
+  history.forEach(w=>{const d=new Date(w.date); if(d.getFullYear()===year&&d.getMonth()===month){const day=d.getDate();workoutDays.set(day,(workoutDays.get(day)||0)+1);}});
+  const monthWorkouts = history.filter(w=>{const d=new Date(w.date);return d.getFullYear()===year&&d.getMonth()===month;});
+
+  // ── Stats calculations ──
+  const sevenDaysAgo = Date.now() - 7*86400000;
+  const thirtyDaysAgo = Date.now() - 30*86400000;
+  const weekWorkouts = history.filter(w=>w.date > sevenDaysAgo);
+  const monthAllWorkouts = history.filter(w=>w.date > thirtyDaysAgo);
+
+  const calcVol = (workouts) => workouts.reduce((s,w)=>s+w.exercises.reduce((a,ex)=>a+ex.sets.reduce((b,st)=>b+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0),0),0);
+  const calcSets = (workouts) => workouts.reduce((s,w)=>s+w.exercises.reduce((a,ex)=>a+ex.sets.filter(st=>st.weight&&st.reps).length,0),0);
+  const calcExercises = (workouts) => { const names = new Set(); workouts.forEach(w=>w.exercises.forEach(ex=>names.add(ex.name))); return names.size; };
+
+  const vol7d = calcVol(weekWorkouts);
+  const volAll = calcVol(history);
+  const sets7d = calcSets(weekWorkouts);
+  const setsAll = calcSets(history);
+  const uniqueExercises = calcExercises(history);
+
+  const avgDuration = history.length > 0 ? Math.round(history.reduce((s,w)=>s+w.duration,0)/history.length) : 0;
+  const avgPerWeek = history.length >= 2
+    ? (history.length / Math.max(1, (Date.now() - history[history.length-1].date) / (7*86400000))).toFixed(1)
+    : history.length;
+
+  // Best single workout volume
+  const bestWorkoutVol = history.reduce((best,w)=>{const v=calcVol([w]);return v>best?v:best;},0);
+
+  const fmtVol = (v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
+
+  const stats = [
+    { label:"This Month", value:monthWorkouts.length, unit:"workouts", color:GREEN, icon:"📅" },
+    { label:"All Time", value:history.length, unit:"workouts", color:"rgba(255,255,255,0.7)", icon:"📊" },
+    { label:"7-Day Volume", value:fmtVol(vol7d), unit:"kg", color:"#60a5fa", icon:"🔥" },
+    { label:"All-Time Volume", value:fmtVol(volAll), unit:"kg", color:"#a78bfa", icon:"🏋️" },
+    { label:"7-Day Sets", value:sets7d, unit:"sets", color:AMBER, icon:"💪" },
+    { label:"All-Time Sets", value:setsAll, unit:"sets", color:"#f472b6", icon:"📈" },
+    { label:"Avg / Week", value:avgPerWeek, unit:"workouts", color:GREEN, icon:"📆" },
+    { label:"Avg Duration", value:formatDur(avgDuration), unit:"", color:"#38bdf8", icon:"⏱" },
+    { label:"Unique Exercises", value:uniqueExercises, unit:"exercises", color:"#34d399", icon:"🎯" },
+    { label:"Best Session", value:fmtVol(bestWorkoutVol), unit:"kg vol", color:AMBER, icon:"🏆" },
+  ];
+
+  const offset = (firstDay+6)%7;
+  const cells = [];
+  for(let i=0;i<offset;i++) cells.push(null);
+  for(let d=1;d<=daysInMonth;d++) cells.push(d);
+
+  const isToday = d => d&&today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+
+  return (
+    <div style={{...overlay, overflow:"auto"}}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:"#fff", flex:1 }}>Calendar</h2>
+      </div>
+
+      {/* ── Scrolling Stats Strip ── */}
+      <div style={{ padding:"12px 0 4px", overflow:"hidden" }}>
+        <div style={{
+          display:"flex", gap:10, overflowX:"auto", padding:"0 20px 8px",
+          WebkitOverflowScrolling:"touch", scrollbarWidth:"none", msOverflowStyle:"none"
+        }}>
+          <style>{`.stats-scroll::-webkit-scrollbar{display:none}`}</style>
+          {stats.map((s,i) => (
+            <div key={i} style={{
+              flexShrink:0, width:130, padding:"14px 14px 12px",
+              background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.05)",
+              borderRadius:14, position:"relative", overflow:"hidden"
+            }}>
+              <div style={{ position:"absolute", top:8, right:10, fontSize:18, opacity:0.15 }}>{s.icon}</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1.2, marginBottom:6, fontFamily:FONT }}>{s.label}</div>
+              <div style={{ display:"flex", alignItems:"baseline", gap:3 }}>
+                <span style={{ fontSize:24, fontWeight:700, color:s.color, fontFamily:MONO, lineHeight:1 }}>{s.value}</span>
+                {s.unit && <span style={{ fontSize:10, color:"rgba(255,255,255,0.2)", fontFamily:MONO }}>{s.unit}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Month nav */}
+      <div style={{ padding:"12px 20px 8px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <button onClick={()=>setViewDate(new Date(year,month-1,1))} style={{...backBtn,fontSize:18}}>‹</button>
+        <span style={{ fontSize:16, fontWeight:600, color:"#fff" }}>{viewDate.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</span>
+        <button onClick={()=>setViewDate(new Date(year,month+1,1))} style={{...backBtn,fontSize:18}}>›</button>
+      </div>
+      <div style={{ padding:"0 20px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:4 }}>
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=><div key={d} style={{ textAlign:"center", fontSize:11, color:"rgba(255,255,255,0.2)", padding:"6px 0" }}>{d}</div>)}
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+          {cells.map((d,i)=>{
+            const worked=d&&workoutDays.has(d), count=d?(workoutDays.get(d)||0):0;
+            return (
+              <div key={i} style={{
+                aspectRatio:"1", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                borderRadius:10, fontSize:14, fontFamily:MONO,
+                color:!d?"transparent":worked?"#fff":"rgba(255,255,255,0.2)",
+                background:worked?"rgba(34,197,94,0.15)":"rgba(255,255,255,0.015)",
+                border:isToday(d)?`1px solid ${GREEN}`:"1px solid transparent"
+              }}>
+                {d}
+                {count>1&&<span style={{ fontSize:8, color:GREEN, marginTop:1 }}>×{count}</span>}
+                {worked&&count===1&&<div style={{ width:4, height:4, borderRadius:2, background:GREEN, marginTop:2 }}/>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ flex:1, overflow:"auto", padding:"16px 20px 40px" }}>
+        <p style={{ fontSize:11, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, margin:"0 0 10px" }}>
+          Workouts in {viewDate.toLocaleDateString("en-GB",{month:"long"})}
+        </p>
+        {monthWorkouts.length===0&&<p style={{color:"rgba(255,255,255,0.15)",fontSize:14,textAlign:"center",padding:"20px 0"}}>No workouts this month</p>}
+        {monthWorkouts.map(w=>(
+          <div key={w.id} style={{...card,padding:"12px 14px"}}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:14, fontWeight:600, color:"#fff" }}>{w.name}</span>
+              <span style={{ fontSize:12, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>{formatFullDate(w.date)}</span>
+            </div>
+            <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
+              {w.exercises.map((ex,j)=><span key={j} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(255,255,255,0.04)",color:"rgba(255,255,255,0.35)"}}>{ex.name}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  WORKOUT PAGE
+// ════════════════════════════════════════════════════════════════
+function WorkoutPage({ onFinish, onCancel, presets, history, exerciseNotes, onExerciseNotesChange }) {
+  const [exercises, setExercises] = useState([]);
+  const [name, setName] = useState("Workout");
+  const [editingName, setEditingName] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [showRestSettings, setShowRestSettings] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const [restDuration, setRestDuration] = useState(90);
+  const [startedAt] = useState(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+  const [prAlerts, setPrAlerts] = useState([]);
+  const [showSummary, setShowSummary] = useState(false);
+  const [finalRecord, setFinalRecord] = useState(null);
+  const nameRef = useRef(null);
+
+  useEffect(()=>{const i=setInterval(()=>setElapsed(Math.floor((Date.now()-startedAt)/1000)),1000);return()=>clearInterval(i);},[startedAt]);
+  useEffect(()=>{if(editingName){nameRef.current?.focus();nameRef.current?.select();}},[editingName]);
+
+  // Build exercise history from past workouts
+  const getExerciseHistory = (exName) => {
+    const sessions = [];
+    history.forEach(w=>{w.exercises.forEach(ex=>{if(ex.name===exName) sessions.push({date:w.date,sets:ex.sets});});});
+    return sessions;
+  };
+
+  // Check for PRs when confirming sets
+  const checkPR = (exName, weight) => {
+    const prevBest = history.reduce((best,w)=>{
+      w.exercises.forEach(ex=>{if(ex.name===exName) ex.sets.forEach(s=>{const ww=parseFloat(s.weight)||0;if(ww>best)best=ww;});});
+      return best;
+    },0);
+    if (parseFloat(weight) > prevBest && prevBest > 0) {
+      setPrAlerts(prev=>[...prev,{id:uid(),exercise:exName,weight}]);
+      setTimeout(()=>setPrAlerts(prev=>prev.slice(1)),3000);
+    }
+  };
+
+  const addExercise = (n)=>{setExercises(prev=>[...prev,{id:uid(),name:n,sets:[{weight:"",reps:"",id:uid(),confirmed:false}]}]);setShowPicker(false);};
+  const updateExercise = (i,ex) => {
+    // Check for PR on any newly confirmed set
+    const prev = exercises[i];
+    ex.sets.forEach((s,j)=>{
+      if(s.confirmed && (!prev.sets[j] || !prev.sets[j].confirmed)) {
+        checkPR(ex.name, s.weight);
+      }
+    });
+    const a=[...exercises];a[i]=ex;setExercises(a);
+  };
+  const removeExercise = (i)=>setExercises(p=>p.filter((_,idx)=>idx!==i));
+
+  const finish = () => {
+    const record = {
+      id:uid(), name, date:startedAt, duration:elapsed,
+      exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets.map(s=>({weight:s.weight,reps:s.reps})),notes:exerciseNotes[ex.name]||""}))
+    };
+    setFinalRecord(record);
+    setShowSummary(true);
+  };
+
+  const confirmFinish = () => {
+    onFinish(finalRecord);
+  };
+
+  const loadPreset = (p)=>{
+    setName(p.name);
+    if (p.restTime !== undefined) setRestDuration(p.restTime);
+    setExercises(p.exercises.map(ex=>({id:uid(),name:ex.name,sets:ex.sets.map(s=>({weight:s.weight,reps:s.reps,id:uid(),confirmed:false}))})));
+    setShowPresets(false);
+  };
+
+  const totalSets = exercises.reduce((s,ex)=>s+ex.sets.filter(st=>st.confirmed).length,0);
+  const totalVol = exercises.reduce((s,ex)=>s+ex.sets.reduce((a,st)=>a+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0),0);
+
+  return (
+    <div style={overlay}>
+      {/* PR Alert Toast */}
+      {prAlerts.map((pr,i)=>(
+        <div key={pr.id} style={{
+          position:"fixed", top:20+i*60, left:"50%", transform:"translateX(-50%)", zIndex:200,
+          background:"rgba(245,158,11,0.95)", color:"#000", padding:"12px 24px", borderRadius:14,
+          fontSize:15, fontWeight:700, fontFamily:FONT, boxShadow:"0 8px 32px rgba(245,158,11,0.3)",
+          animation:"fadeUp 0.3s ease both"
+        }}>
+          🏆 New PR! {pr.exercise}: {pr.weight}kg
+        </div>
+      ))}
+
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
+
+      <div style={{ padding:"14px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid rgba(255,255,255,0.05)", flexShrink:0 }}>
+        <button onClick={onCancel} style={{...backBtn,fontSize:14,color:"rgba(255,255,255,0.4)"}}>✕ Cancel</button>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={()=>setShowPresets(true)} style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, color:"rgba(255,255,255,0.45)", fontSize:12, padding:"7px 12px", cursor:"pointer", fontFamily:FONT }}>⭐ Presets</button>
+          <button onClick={finish} disabled={exercises.length===0} style={{
+            background:exercises.length>0?"rgba(34,197,94,0.12)":"rgba(255,255,255,0.03)",
+            border:exercises.length>0?"1px solid rgba(34,197,94,0.25)":"1px solid rgba(255,255,255,0.06)",
+            borderRadius:9, color:exercises.length>0?GREEN:"rgba(255,255,255,0.2)",
+            fontSize:13, fontWeight:500, padding:"7px 14px", cursor:exercises.length>0?"pointer":"default", fontFamily:FONT
+          }}>Finish ✓</button>
+        </div>
+      </div>
+
+      <div style={{ padding:"14px 20px 10px", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+          <span style={{ color:GREEN, fontSize:10 }}>●</span>
+          {editingName ? (
+            <input ref={nameRef} type="text" value={name} onChange={e=>setName(e.target.value)}
+              onBlur={()=>setEditingName(false)} onKeyDown={e=>e.key==="Enter"&&setEditingName(false)}
+              style={{ background:"none", border:"none", borderBottom:`2px solid ${GREEN}`, color:"#fff", fontSize:22, fontWeight:700, fontFamily:FONT, outline:"none", padding:"0 0 2px", flex:1 }} />
+          ) : (
+            <h2 onClick={()=>setEditingName(true)} style={{ margin:0, fontSize:22, fontWeight:700, color:"#fff", cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+              {name} <span style={{ fontSize:13, color:"rgba(255,255,255,0.15)" }}>✎</span>
+            </h2>
+          )}
+        </div>
+        <span style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:MONO }}>{formatTimer(elapsed)}</span>
+        <div style={{ display:"flex", gap:16, marginTop:12, padding:"10px 14px", background:"rgba(255,255,255,0.02)", borderRadius:11, border:"1px solid rgba(255,255,255,0.04)" }}>
+          {[["Exercises",exercises.length],["Sets",totalSets],["Volume",totalVol>999?`${(totalVol/1000).toFixed(1)}k`:totalVol]].map(([l,v],i)=>(
+            <div key={l} style={{ display:"flex", alignItems:"center" }}>
+              {i>0&&<div style={{ width:1, height:24, background:"rgba(255,255,255,0.06)", marginRight:16 }}/>}
+              <div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1.2 }}>{l}</div>
+                <div style={{ fontSize:18, fontWeight:600, fontFamily:MONO, color:"#fff" }}>{v}{l==="Volume"&&<span style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginLeft:2}}>kg</span>}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center" }}>
+            <button onClick={()=>setShowRestSettings(true)} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:9, color:"rgba(255,255,255,0.4)", fontSize:11, padding:"6px 10px", cursor:"pointer", fontFamily:MONO }}>
+              ⏱ {restDuration>0?formatTimer(restDuration):"Off"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflow:"auto", padding:"8px 20px 100px" }}>
+        {exercises.map((ex,i)=>(
+          <ExerciseCard key={ex.id} exercise={ex} onUpdate={e=>updateExercise(i,e)} onRemove={()=>removeExercise(i)}
+            restDuration={restDuration} exerciseHistory={getExerciseHistory(ex.name)}
+            notes={exerciseNotes[ex.name]||""} onNotesChange={v=>onExerciseNotesChange(ex.name,v)} />
+        ))}
+        <button onClick={()=>setShowPicker(true)} style={{ width:"100%", padding:"15px", background:"rgba(34,197,94,0.07)", border:"1px solid rgba(34,197,94,0.13)", borderRadius:14, color:GREEN, fontSize:15, fontWeight:500, cursor:"pointer", fontFamily:FONT }}>+ Add Exercise</button>
+      </div>
+
+      {showPicker && <ExercisePicker onSelect={addExercise} onClose={()=>setShowPicker(false)} />}
+      {showRestSettings && <RestSettings value={restDuration} onChange={setRestDuration} onClose={()=>setShowRestSettings(false)} />}
+      {showPresets && <QuickPresetPicker presets={presets} onLoad={loadPreset} onClose={() => setShowPresets(false)} />}
+
+      {/* ── Workout Complete Summary ── */}
+      {showSummary && finalRecord && (() => {
+        const r = finalRecord;
+        const totalVolumeF = r.exercises.reduce((s,ex)=>s+ex.sets.reduce((a,st)=>a+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0),0);
+        const totalSetsF = r.exercises.reduce((s,ex)=>s+ex.sets.filter(st=>st.weight&&st.reps).length,0);
+        const best1RMex = r.exercises.reduce((best,ex)=>{
+          const rm = ex.sets.reduce((b,s)=>{const v=calc1RM(parseFloat(s.weight)||0,parseInt(s.reps)||0);return v>b?v:b;},0);
+          return rm > best.rm ? {name:ex.name,rm} : best;
+        },{name:"",rm:0});
+        return (
+          <div style={{ ...overlay, zIndex:120, background:"#0a0a0a", alignItems:"center", justifyContent:"center", overflow:"auto" }}>
+            <style>{`
+              @keyframes popIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+              @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+              @keyframes confetti{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(120px) rotate(720deg)}}
+            `}</style>
+
+            {/* Confetti dots */}
+            {Array.from({length:20}).map((_,i)=>(
+              <div key={i} style={{
+                position:"fixed", top:-10, left:`${5+i*4.7}%`, width:6+Math.random()*6, height:6+Math.random()*6,
+                borderRadius: Math.random()>0.5 ? "50%" : "2px",
+                background:[GREEN,AMBER,"#60a5fa","#a78bfa","#f472b6","#34d399"][i%6],
+                animation:`confetti ${1.5+Math.random()*2}s ease ${Math.random()*0.8}s both`,
+                zIndex:121
+              }}/>
+            ))}
+
+            <div style={{ padding:"40px 28px", maxWidth:380, width:"100%", textAlign:"center" }}>
+              <div style={{ fontSize:56, marginBottom:8, animation:"popIn 0.5s ease both" }}>💪</div>
+              <h2 style={{ margin:"0 0 4px", fontSize:24, fontWeight:700, color:"#fff", animation:"slideUp 0.4s ease 0.2s both" }}>Workout Complete!</h2>
+              <p style={{ margin:"0 0 28px", fontSize:14, color:"rgba(255,255,255,0.35)", fontFamily:MONO, animation:"slideUp 0.4s ease 0.3s both" }}>{r.name} · {formatDur(r.duration)}</p>
+
+              {/* Stats grid */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24, animation:"slideUp 0.4s ease 0.4s both" }}>
+                {[
+                  { label:"Exercises", value:r.exercises.length, color:GREEN, icon:"🎯" },
+                  { label:"Total Sets", value:totalSetsF, color:AMBER, icon:"💪" },
+                  { label:"Volume", value:`${totalVolumeF>=1000?(totalVolumeF/1000).toFixed(1)+"k":totalVolumeF}kg`, color:"#60a5fa", icon:"🏋️" },
+                  { label:"Duration", value:formatDur(r.duration), color:"#a78bfa", icon:"⏱" },
+                ].map(s=>(
+                  <div key={s.label} style={{ ...card, padding:"16px 12px", textAlign:"center", position:"relative", overflow:"hidden" }}>
+                    <div style={{ position:"absolute", top:6, right:8, fontSize:16, opacity:0.12 }}>{s.icon}</div>
+                    <div style={{ fontSize:22, fontWeight:700, color:s.color, fontFamily:MONO }}>{s.value}</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:1, marginTop:2 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Best estimated 1RM */}
+              {best1RMex.rm > 0 && (
+                <div style={{ ...card, padding:"14px 16px", marginBottom:24, textAlign:"left", animation:"slideUp 0.4s ease 0.5s both" }}>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:6 }}>Top Estimated 1RM</div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:14, color:"rgba(255,255,255,0.7)" }}>{best1RMex.name}</span>
+                    <span style={{ fontSize:18, fontWeight:700, color:AMBER, fontFamily:MONO }}>{best1RMex.rm}kg</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Exercise breakdown */}
+              <div style={{ ...card, padding:"14px 16px", marginBottom:28, textAlign:"left", animation:"slideUp 0.4s ease 0.55s both" }}>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>Exercises</div>
+                {r.exercises.map((ex,i) => {
+                  const exSets = ex.sets.filter(s=>s.weight&&s.reps);
+                  const exVol = ex.sets.reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
+                  return (
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:i<r.exercises.length-1?"1px solid rgba(255,255,255,0.03)":"none" }}>
+                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>{ex.name}</span>
+                      <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>{exSets.length}s · {exVol}kg</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button onClick={confirmFinish} style={{
+                ...btnG, width:"100%", padding:"16px", fontSize:17,
+                boxShadow:`0 4px 24px rgba(34,197,94,0.25)`,
+                animation:"slideUp 0.4s ease 0.6s both"
+              }}>Done</button>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PRESETS PAGE (standalone — add, edit, delete presets)
+// ════════════════════════════════════════════════════════════════
+function PresetBuilder({ preset, onSave, onClose }) {
+  const [name, setName] = useState(preset?.name || "");
+  const [exercises, setExercises] = useState(
+    preset?.exercises?.map(ex => ({ ...ex, id: uid() })) || []
+  );
+  const [restTime, setRestTime] = useState(preset?.restTime ?? 90);
+  const [showPicker, setShowPicker] = useState(false);
+  const [showRestModal, setShowRestModal] = useState(false);
+  const nameRef = useRef(null);
+  useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const addExercise = (exName) => {
+    setExercises(prev => [...prev, { id: uid(), name: exName, sets: [{ weight: "", reps: "" }] }]);
+    setShowPicker(false);
+  };
+
+  const removeExercise = (i) => setExercises(prev => prev.filter((_, idx) => idx !== i));
+
+  const updateSetCount = (i, count) => {
+    const c = Math.max(1, Math.min(20, count));
+    const ex = exercises[i];
+    const currentSets = ex.sets;
+    let newSets;
+    if (c > currentSets.length) {
+      const last = currentSets[currentSets.length - 1] || { weight: "", reps: "" };
+      newSets = [...currentSets, ...Array(c - currentSets.length).fill(null).map(() => ({ weight: last.weight, reps: last.reps }))];
+    } else {
+      newSets = currentSets.slice(0, c);
+    }
+    const arr = [...exercises]; arr[i] = { ...ex, sets: newSets }; setExercises(arr);
+  };
+
+  const moveExercise = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= exercises.length) return;
+    const arr = [...exercises];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    setExercises(arr);
+  };
+
+  const handleSave = () => {
+    if (!name.trim() || exercises.length === 0) return;
+    onSave({
+      id: preset?.id || uid(),
+      name: name.trim(),
+      restTime,
+      exercises: exercises.map(ex => ({ name: ex.name, sets: ex.sets })),
+    });
+  };
+
+  const canSave = name.trim() && exercises.length > 0;
+
+  return (
+    <div style={{ ...overlay, zIndex: 100 }}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#fff", flex: 1 }}>
+          {preset ? "Edit Preset" : "New Preset"}
+        </h2>
+        <button onClick={handleSave} disabled={!canSave} style={{
+          background: canSave ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.03)",
+          border: canSave ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 9, color: canSave ? GREEN : "rgba(255,255,255,0.2)",
+          fontSize: 13, fontWeight: 500, padding: "7px 14px", cursor: canSave ? "pointer" : "default", fontFamily: FONT
+        }}>Save</button>
+      </div>
+
+      <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 40px" }}>
+        {/* Preset name */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 6 }}>Preset Name</label>
+          <input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
+            placeholder="e.g. Push Day, Leg Day, Upper Body..."
+            style={{ width: "100%", boxSizing: "border-box", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 16, outline: "none", fontFamily: FONT }} />
+        </div>
+
+        {/* Rest time setting */}
+        <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Default Rest Time</span>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(255,255,255,0.3)" }}>Between sets when using this preset</p>
+          </div>
+          <button onClick={() => setShowRestModal(true)} style={{
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            color: restTime > 0 ? GREEN : "rgba(255,255,255,0.4)", fontSize: 15, fontWeight: 600, padding: "8px 16px",
+            cursor: "pointer", fontFamily: MONO
+          }}>{restTime > 0 ? formatTimer(restTime) : "Off"}</button>
+        </div>
+
+        {/* Exercise list */}
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 8 }}>
+            Exercises ({exercises.length})
+          </label>
+        </div>
+
+        {exercises.map((ex, i) => {
+          const muscles = getMusclesForExercise(ex.name);
+          return (
+            <div key={ex.id} style={{ ...card, padding: "14px", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{ex.name}</span>
+                  {muscles.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 3 }}>
+                      {muscles.slice(0, 3).map(m => <span key={m} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.25)" }}>{m}</span>)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => moveExercise(i, -1)} disabled={i === 0} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, color: i === 0 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.35)", fontSize: 12, padding: "4px 8px", cursor: i === 0 ? "default" : "pointer" }}>↑</button>
+                  <button onClick={() => moveExercise(i, 1)} disabled={i === exercises.length - 1} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, color: i === exercises.length - 1 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.35)", fontSize: 12, padding: "4px 8px", cursor: i === exercises.length - 1 ? "default" : "pointer" }}>↓</button>
+                  <button onClick={() => removeExercise(i)} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.12)", borderRadius: 6, color: RED, fontSize: 12, padding: "4px 8px", cursor: "pointer" }}>✕</button>
+                </div>
+              </div>
+              {/* Set count */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>Sets:</span>
+                <button onClick={() => updateSetCount(i, ex.sets.length - 1)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: "rgba(255,255,255,0.5)", fontSize: 14, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                <span style={{ fontSize: 16, fontWeight: 600, color: "#fff", fontFamily: MONO, minWidth: 20, textAlign: "center" }}>{ex.sets.length}</span>
+                <button onClick={() => updateSetCount(i, ex.sets.length + 1)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: "rgba(255,255,255,0.5)", fontSize: 14, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+              </div>
+            </div>
+          );
+        })}
+
+        <button onClick={() => setShowPicker(true)} style={{
+          width: "100%", padding: "15px", background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.13)",
+          borderRadius: 14, color: GREEN, fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: FONT
+        }}>+ Add Exercise</button>
+      </div>
+
+      {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
+      {showRestModal && <RestSettings value={restTime} onChange={setRestTime} onClose={() => setShowRestModal(false)} />}
+    </div>
+  );
+}
+
+function PresetsPage({ presets, onSave, onDelete, onClose }) {
+  const [editing, setEditing] = useState(null);    // null = list, "new" = new, preset object = editing
+  
+  if (editing) {
+    return (
+      <PresetBuilder
+        preset={editing === "new" ? null : editing}
+        onSave={(p) => { onSave(p); setEditing(null); }}
+        onClose={() => setEditing(null)}
+      />
+    );
+  }
+
+  return (
+    <div style={{ ...overlay, overflow: "auto" }}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#fff", flex: 1 }}>Workout Presets</h2>
+        <button onClick={() => setEditing("new")} style={{
+          background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 9,
+          color: GREEN, fontSize: 13, fontWeight: 500, padding: "7px 14px", cursor: "pointer", fontFamily: FONT
+        }}>+ New</button>
+      </div>
+
+      <div style={{ padding: "12px 20px 40px", flex: 1, overflow: "auto" }}>
+        {presets.length === 0 && (
+          <div style={{ textAlign: "center", padding: "50px 20px", color: "rgba(255,255,255,0.15)" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+            <p style={{ fontSize: 16, fontWeight: 500, margin: "0 0 6px" }}>No presets yet</p>
+            <p style={{ fontSize: 13, margin: 0 }}>Create preset workouts to start faster</p>
+          </div>
+        )}
+
+        {presets.map(p => (
+          <div key={p.id} style={{ ...card }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#fff", fontFamily: FONT }}>{p.name}</h3>
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontFamily: MONO }}>{p.exercises.length} exercises</span>
+                  {p.restTime > 0 && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontFamily: MONO }}>⏱ {formatTimer(p.restTime)}</span>}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setEditing(p)} style={{
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+                  color: "rgba(255,255,255,0.4)", fontSize: 12, padding: "6px 12px", cursor: "pointer", fontFamily: FONT
+                }}>Edit</button>
+                <button onClick={() => onDelete(p.id)} style={{
+                  background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.12)", borderRadius: 8,
+                  color: "rgba(239,68,68,0.5)", fontSize: 13, padding: "6px 10px", cursor: "pointer"
+                }}>🗑</button>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {p.exercises.map((ex, j) => (
+                <span key={j} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.1)", color: "rgba(34,197,94,0.6)" }}>
+                  {ex.name} · {ex.sets.length}s
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick Preset Picker (used inside WorkoutPage to load a preset) ───
+function QuickPresetPicker({ presets, onLoad, onClose }) {
+  return (
+    <div style={{ ...overlay, zIndex: 110, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(20px)", overflow: "auto" }}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#fff", flex: 1 }}>Load Preset</h2>
+      </div>
+      <div style={{ padding: "12px 20px 40px", flex: 1, overflow: "auto" }}>
+        {presets.length === 0 && <p style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 14 }}>No presets yet — create them from the home page</p>}
+        {presets.map(p => (
+          <button key={p.id} onClick={() => onLoad(p)} style={{
+            ...card, cursor: "pointer", display: "block", width: "100%", textAlign: "left", transition: "background 0.15s"
+          }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.025)"}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", fontFamily: FONT }}>{p.name}</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                {p.restTime > 0 && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: MONO }}>⏱ {formatTimer(p.restTime)}</span>}
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: MONO }}>{p.exercises.length} exercises</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {p.exercises.map((ex, j) => (
+                <span key={j} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 5, background: "rgba(34,197,94,0.06)", color: "rgba(34,197,94,0.5)" }}>{ex.name}</span>
+              ))}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MAIN APP
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+//  FULL HISTORY PAGE
+// ════════════════════════════════════════════════════════════════
+function FullHistoryPage({ history, onDelete, onClose }) {
+  return (
+    <div style={{...overlay, overflow:"auto"}}>
+      <div style={topBar}>
+        <button onClick={onClose} style={backBtn}>←</button>
+        <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:"#fff", flex:1 }}>All Workouts</h2>
+        <span style={{ fontSize:12, color:"rgba(255,255,255,0.25)", fontFamily:MONO }}>{history.length}</span>
+      </div>
+      <div style={{ padding:"12px 20px 40px", flex:1, overflow:"auto" }}>
+        {history.map((w,idx)=>{
+          const vol=w.exercises.reduce((s,ex)=>s+ex.sets.reduce((a,st)=>a+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0),0);
+          const sets=w.exercises.reduce((s,ex)=>s+ex.sets.filter(st=>st.weight&&st.reps).length,0);
+          return (
+            <div key={w.id} style={{...card, padding:"14px"}}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+                <div>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:600,color:"#fff"}}>{w.name}</h3>
+                  <div style={{ display:"flex", gap:8, marginTop:3 }}>
+                    <span style={{fontSize:12,color:"rgba(255,255,255,0.3)",fontFamily:MONO}}>{formatFullDate(w.date)}</span>
+                    <span style={{fontSize:12,color:"rgba(255,255,255,0.2)",fontFamily:MONO}}>{formatDur(w.duration)}</span>
+                  </div>
+                </div>
+                <button onClick={()=>onDelete(w.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.1)",fontSize:13,cursor:"pointer",padding:4}}
+                  onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.1)"}>🗑</button>
+              </div>
+              {w.exercises.map((ex,j)=>{
+                const exSets=ex.sets.filter(s=>s.weight&&s.reps);
+                const best=exSets.reduce((b,s)=>{const ww=parseFloat(s.weight)||0;return ww>((parseFloat(b.weight))||0)?s:b;},exSets[0]||{});
+                return (
+                  <div key={j} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 0", borderTop:j===0?"1px solid rgba(255,255,255,0.04)":"none" }}>
+                    <span style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>{ex.name}</span>
+                    <span style={{fontSize:11,color:"rgba(255,255,255,0.25)",fontFamily:MONO}}>{exSets.length}s {best.weight?`· ${best.weight}kg×${best.reps}`:""}</span>
+                  </div>
+                );
+              })}
+              <div style={{ display:"flex", gap:10, marginTop:6, paddingTop:6, borderTop:"1px solid rgba(255,255,255,0.04)" }}>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.2)",fontFamily:MONO}}>{sets} sets</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.2)",fontFamily:MONO}}>{vol>=1000?(vol/1000).toFixed(1)+"k":vol}kg vol</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GymTracker() {
+  const [history, setHistory] = useState([]);
+  const [presets, setPresets] = useState([]);
+  const [exerciseNotes, setExerciseNotes] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState("home");
+
+  useEffect(()=>{(async()=>{
+    const h=await load("gym-history",[]);
+    const p=await load("gym-presets",[]);
+    const n=await load("gym-notes",{});
+    setHistory(h);setPresets(p);setExerciseNotes(n);setLoaded(true);
+  })();},[]);
+
+  const finishWorkout = async(record)=>{const h=[record,...history];setHistory(h);await save("gym-history",h);setPage("home");};
+  const deleteWorkout = async(id)=>{const h=history.filter(w=>w.id!==id);setHistory(h);await save("gym-history",h);};
+  const savePreset = async(preset)=>{
+    // If preset with same id exists, update it; otherwise add new
+    const exists = presets.findIndex(p => p.id === preset.id);
+    let p;
+    if (exists >= 0) { p = [...presets]; p[exists] = preset; }
+    else { p = [preset, ...presets]; }
+    setPresets(p); await save("gym-presets", p);
+  };
+  const deletePreset = async(id)=>{const p=presets.filter(x=>x.id!==id);setPresets(p);await save("gym-presets",p);};
+  const updateNotes = async(exName,note)=>{const n={...exerciseNotes,[exName]:note};setExerciseNotes(n);await save("gym-notes",n);};
+
+  if (!loaded) return <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"rgba(255,255,255,0.25)",fontFamily:FONT}}>Loading...</span></div>;
+
+  if (page==="workout") return <WorkoutPage onFinish={finishWorkout} onCancel={()=>setPage("home")} presets={presets} history={history} exerciseNotes={exerciseNotes} onExerciseNotesChange={updateNotes} />;
+  if (page==="calendar") return <CalendarPage history={history} onClose={()=>setPage("home")} />;
+  if (page==="progress") return <ProgressPage history={history} exerciseNotes={exerciseNotes} onClose={()=>setPage("home")} />;
+  if (page==="presets") return <PresetsPage presets={presets} onSave={savePreset} onDelete={deletePreset} onClose={()=>setPage("home")} />;
+  if (page==="history") return <FullHistoryPage history={history} onDelete={deleteWorkout} onClose={()=>setPage("home")} />;
+
+  const weekAgo = Date.now() - 7*86400000;
+  const weekW = history.filter(w => w.date > weekAgo);
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(180deg, #0a0a0a 0%, #111 50%, #0d0d0d 100%)", color:"#fff", fontFamily:FONT, maxWidth:480, margin:"0 auto", position:"relative" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+      {/* Header */}
+      <div style={{ padding:"24px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div>
+          <h1 style={{ margin:0, fontSize:26, fontWeight:700, letterSpacing:-0.5 }}>Iron<span style={{color:GREEN}}>Log</span></h1>
+          <p style={{ margin:"2px 0 0", fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:MONO }}>
+            {weekW.length>0?`${weekW.length} workout${weekW.length>1?"s":""} this week`:"No workouts this week yet"}
+          </p>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={()=>setPage("presets")} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, color:"rgba(255,255,255,0.5)", fontSize:20, padding:"10px 14px", cursor:"pointer", lineHeight:1 }}>⭐</button>
+          <button onClick={()=>setPage("progress")} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, color:"rgba(255,255,255,0.5)", fontSize:20, padding:"10px 14px", cursor:"pointer", lineHeight:1 }}>📊</button>
+          <button onClick={()=>setPage("calendar")} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, color:"rgba(255,255,255,0.5)", fontSize:20, padding:"10px 14px", cursor:"pointer", lineHeight:1 }}>📅</button>
+        </div>
+      </div>
+
+      {/* Start Workout */}
+      <div style={{ padding:"0 20px 16px" }}>
+        <button onClick={()=>setPage("workout")} style={{
+          width:"100%", padding:"18px", background:`linear-gradient(135deg, ${GREEN}dd 0%, ${GREEN} 100%)`,
+          border:"none", borderRadius:14, color:"#000", fontSize:17, fontWeight:700,
+          cursor:"pointer", fontFamily:FONT, letterSpacing:0.3, boxShadow:"0 4px 24px rgba(34,197,94,0.2)",
+          transition:"transform 0.15s, box-shadow 0.15s"
+        }} onMouseEnter={e=>{e.target.style.transform="translateY(-1px)";e.target.style.boxShadow="0 6px 32px rgba(34,197,94,0.3)";}}
+          onMouseLeave={e=>{e.target.style.transform="translateY(0)";e.target.style.boxShadow="0 4px 24px rgba(34,197,94,0.2)";}}>
+          + Start New Workout
+        </button>
+      </div>
+
+      {/* History Feed — last 7 only, condensed */}
+      <div style={{ padding:"0 20px 40px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <span style={{ fontSize:12, color:"rgba(255,255,255,0.25)", textTransform:"uppercase", letterSpacing:1.5 }}>Recent Workouts</span>
+          <span style={{ fontSize:12, color:"rgba(255,255,255,0.15)", fontFamily:MONO }}>{history.length} total</span>
+        </div>
+
+        {history.length===0 && (
+          <div style={{ textAlign:"center", padding:"50px 20px", color:"rgba(255,255,255,0.15)" }}>
+            <div style={{ fontSize:44, marginBottom:14 }}>🏋️</div>
+            <p style={{ fontSize:16, fontWeight:500, margin:"0 0 4px" }}>No workouts yet</p>
+            <p style={{ fontSize:13, margin:0 }}>Hit the button above to start</p>
+          </div>
+        )}
+
+        {history.slice(0,7).map((w,idx)=>{
+          const vol=w.exercises.reduce((s,ex)=>s+ex.sets.reduce((a,st)=>a+(parseFloat(st.weight)||0)*(parseInt(st.reps)||0),0),0);
+          const sets=w.exercises.reduce((s,ex)=>s+ex.sets.filter(st=>st.weight&&st.reps).length,0);
+          return (
+            <div key={w.id} style={{
+              ...card, padding:"12px 14px", animation:`fadeUp 0.3s ease ${idx*0.04}s both`,
+              display:"flex", justifyContent:"space-between", alignItems:"center"
+            }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:600,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{w.name}</h3>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.2)",fontFamily:MONO,flexShrink:0}}>{formatDate(w.date)}</span>
+                </div>
+                <div style={{ display:"flex", gap:8, marginTop:4 }}>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.25)",fontFamily:MONO}}>{w.exercises.length} exercises</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.2)",fontFamily:MONO}}>{sets}s</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.2)",fontFamily:MONO}}>{vol>=1000?(vol/1000).toFixed(1)+"k":vol}kg</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.15)",fontFamily:MONO}}>{formatDur(w.duration)}</span>
+                </div>
+              </div>
+              <button onClick={()=>deleteWorkout(w.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.08)",fontSize:13,cursor:"pointer",padding:"4px 4px 4px 8px",flexShrink:0}}
+                onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.08)"}>🗑</button>
+            </div>
+          );
+        })}
+
+        {/* See all history */}
+        {history.length > 7 && (
+          <button onClick={()=>setPage("history")} style={{
+            width:"100%", marginTop:8, padding:"14px", background:"rgba(255,255,255,0.025)",
+            border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, color:"rgba(255,255,255,0.4)",
+            fontSize:14, cursor:"pointer", fontFamily:FONT, transition:"background 0.15s"
+          }} onMouseEnter={e=>e.target.style.background="rgba(255,255,255,0.05)"}
+            onMouseLeave={e=>e.target.style.background="rgba(255,255,255,0.025)"}>
+            See all {history.length} workouts →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(GymTracker));
+</script>
+</body>
+</html>
